@@ -580,11 +580,20 @@ namespace Mono.CSharp {
 			return r.ResolveMember<MethodSpec> (rc, ref args);
 		}
 
+		[Flags]
+		public enum MemberLookupRestrictions
+		{
+			None = 0,
+			InvocableOnly = 1,
+			ExactArity = 1 << 2,
+			ReadAccess = 1 << 3
+		}
+
 		//
 		// Lookup type `queried_type' for code in class `container_type' with a qualifier of
 		// `qualifier_type' or null to lookup members in the current class.
 		//
-		public static Expression MemberLookup (ResolveContext rc, TypeSpec currentType, TypeSpec queried_type, string name, int arity, bool invocableOnly, Location loc)
+		public static Expression MemberLookup (ResolveContext rc, TypeSpec currentType, TypeSpec queried_type, string name, int arity, MemberLookupRestrictions restrictions, Location loc)
 		{
 			var members = MemberCache.FindMembers (queried_type, name, false);
 			if (members == null)
@@ -601,13 +610,13 @@ namespace Mono.CSharp {
 					if ((member.Modifiers & Modifiers.OVERRIDE) != 0 && member.Kind != MemberKind.Event)
 						continue;
 
-					if (arity > 0 && member.Arity != arity)
+					if ((arity > 0 || (restrictions & MemberLookupRestrictions.ExactArity) != 0) && member.Arity != arity)
 						continue;
 
 					if (rc != null && !member.IsAccessible (currentType))
 						continue;
 
-					if (invocableOnly) {
+					if ((restrictions & MemberLookupRestrictions.InvocableOnly) != 0) {
 						if (member is MethodSpec)
 							return new MethodGroupExpr (members, queried_type, loc);
 
@@ -2121,7 +2130,7 @@ namespace Mono.CSharp {
 			return Name;
 		}
 
-		public abstract Expression LookupNameExpression (ResolveContext rc, bool readMode, bool invocableOnly);
+		public abstract Expression LookupNameExpression (ResolveContext rc, MemberLookupRestrictions restriction);
 	}
 	
 	/// <summary>
@@ -2253,7 +2262,7 @@ namespace Mono.CSharp {
 			return null;
 		}
 
-		public override Expression LookupNameExpression (ResolveContext rc, bool readMode, bool invocableOnly)
+		public override Expression LookupNameExpression (ResolveContext rc, MemberLookupRestrictions restrictions)
 		{
 			int lookup_arity = Arity;
 			bool errorMode = false;
@@ -2305,7 +2314,7 @@ namespace Mono.CSharp {
 				TypeSpec member_type = rc.CurrentType;
 				TypeSpec current_type = member_type;
 				for (; member_type != null; member_type = member_type.DeclaringType) {
-					var me = MemberLookup (errorMode ? null : rc, current_type, member_type, Name, lookup_arity, invocableOnly, loc) as MemberExpr;
+					var me = MemberLookup (errorMode ? null : rc, current_type, member_type, Name, lookup_arity, restrictions, loc) as MemberExpr;
 					if (me == null)
 						continue;
 
@@ -2324,7 +2333,7 @@ namespace Mono.CSharp {
 						if (pe != null) {
 
 							// Break as there is no other overload available anyway
-							if (readMode) {
+							if ((restrictions & MemberLookupRestrictions.ReadAccess) != 0) {
 								if (!pe.PropertyInfo.HasGet || !pe.PropertyInfo.Get.IsAccessible (current_type))
 									break;
 
@@ -2353,7 +2362,7 @@ namespace Mono.CSharp {
 				//
 				// Stage 3: Lookup nested types, namespaces and type parameters in the context
 				//
-				if (!invocableOnly) {
+				if ((restrictions & MemberLookupRestrictions.InvocableOnly) == 0) {
 					e = ResolveAsTypeStep (rc, lookup_arity == 0 || !errorMode);
 					if (e != null)
 						return e;
@@ -2371,14 +2380,14 @@ namespace Mono.CSharp {
 				}
 
 				lookup_arity = 0;
-				invocableOnly = false;
+				restrictions &= ~MemberLookupRestrictions.InvocableOnly;
 				errorMode = true;
 			}
 		}
 		
 		Expression SimpleNameResolve (ResolveContext ec, Expression right_side, bool intermediate)
 		{
-			Expression e = LookupNameExpression (ec, right_side == null, false);
+			Expression e = LookupNameExpression (ec, right_side == null ? MemberLookupRestrictions.ReadAccess : MemberLookupRestrictions.None);
 
 			if (e == null)
 				return null;
