@@ -276,6 +276,7 @@ namespace Mono.Xml
 			if (settings == null)
 				settings = new XmlWriterSettings ();
 
+			newline_handling = settings.NewLineHandling;
 			Initialize (writer);
 
 			close_output_stream = closeOutput;
@@ -308,7 +309,6 @@ namespace Mono.Xml
 			indent_attributes = settings.NewLineOnAttributes;
 
 			check_character_validity = settings.CheckCharacters;
-			newline_handling = settings.NewLineHandling;
 			namespace_handling = settings.NamespaceHandling;
 		}
 #endif
@@ -1104,6 +1104,13 @@ namespace Mono.Xml
 		{
 			if (text == null || (text.Length == 0 && !v2))
 				return; // do nothing, including state transition.
+
+			if (text.Length == 0)
+			{
+				WriteRaw (text);
+				return;
+			}
+
 			ShiftStateContent ("Text", true);
 
 			WriteEscapedString (text, state == WriteState.Attribute);
