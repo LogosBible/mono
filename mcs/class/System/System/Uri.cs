@@ -1409,7 +1409,9 @@ namespace System {
 			} else if (pos == 1) {
 				if (!IsAlpha (uriString [0])) {
 					if (kind == UriKind.Absolute)
-						return "Invalid URI: The URI scheme is not valid.";
+						return "URI scheme must start with a letter.";
+					if (uriString.Length == 2)
+						return "Invalid URI: The format of the URI could not be determined.";
 					isAbsoluteUri = false;
 					path = uriString;
 					return null;
