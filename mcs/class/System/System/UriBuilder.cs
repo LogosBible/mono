@@ -252,7 +252,8 @@ namespace System
 			StringBuilder builder = new StringBuilder ();
 
 			builder.Append (scheme);
-			builder.Append ("://");
+			// note: mailto, news, and schemes without hosts use ':', not "://" as their delimiter
+			builder.Append (host.Length != 0 ? Uri.GetSchemeDelimiter (scheme) : ":");
 
 			if (username != String.Empty) {
 				builder.Append (username);
@@ -265,9 +266,10 @@ namespace System
 			if (port > 0)
 				builder.Append (":" + port);
 
-			if (path != String.Empty &&
+			if (path.Length != 0 &&
 			    builder [builder.Length - 1] != '/' &&
-			    path.Length > 0 && path [0] != '/')
+			    path.Length > 0 && path [0] != '/' &&
+			    host.Length != 0)
 				builder.Append ('/');
 			builder.Append (path);
 			builder.Append (query);
