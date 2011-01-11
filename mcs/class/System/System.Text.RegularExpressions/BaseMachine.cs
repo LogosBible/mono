@@ -91,15 +91,12 @@ namespace System.Text.RegularExpressions
 			return (string []) splits.ToArray (typeof (string));
 		}
 
-		virtual public Match Scan (Regex regex, string text, int start, int end)
+		public Match Scan (Regex regex, string text, int start, int end)
 		{
 			return Scan (regex, text, start, end, false);
 		}
 
-		virtual public Match Scan (Regex regex, string text, int start, int end, bool substring_match)
-		{
-			throw new NotImplementedException ("Scan method must be implemented in derived classes");
-		}
+		public abstract Match Scan (Regex regex, string text, int start, int end, bool substring_match);
 
 		virtual public string Result (string replacement, Match match)
 		{
