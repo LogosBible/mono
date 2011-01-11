@@ -61,10 +61,6 @@ namespace System.Text.RegularExpressions {
 
 		// IMachine implementation
 
-		public override Match Scan (Regex regex, string text, int start, int end) {
-			return Scan (regex, text, start, end, this.substring_mode);
-		}
-
 		public override Match Scan (Regex regex, string text, int start, int end, bool substring_mode) {
 			this.regex_rtl = (regex.Options & RegexOptions.RightToLeft) != 0;
 
@@ -72,6 +68,7 @@ namespace System.Text.RegularExpressions {
 			{
 				this.text_start = regex_rtl && substring_mode ? end : start;
 				this.text_end = regex_rtl ? substring_mode ? start : 0 : end;
+				initialized = true;
 			}
 			else
 			{
@@ -679,7 +676,7 @@ namespace System.Text.RegularExpressions {
 
 						while (true) {
 							int p = ptr + coff;
-							if (c1 < 0 || (p >= 0 && p < text_end && (c1 == text[p] || c2 == text[p]))) {
+ 							if (c1 < 0 || (p >= 0 && ((regex_rtl && p >= text_end) || (!regex_rtl && p < text_end)) && (c1 == text[p] || c2 == text[p]))) {
 								deep = null;
 								if (Eval (Mode.Match, ref ptr, pc))
 									break;
