@@ -133,7 +133,7 @@ namespace System
 					inputEncoding = outputEncoding = Encoding.Default;
 			}
 
-			stderr = new UnexceptionalStreamWriter (OpenStandardError (0), outputEncoding); 
+			stderr = new UnexceptionalStreamWriter (OpenStandardError (0), Encoding.UTF8); 
 			((StreamWriter)stderr).AutoFlush = true;
 			stderr = TextWriter.Synchronized (stderr, true);
 

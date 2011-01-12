@@ -1254,6 +1254,11 @@ cpuid (int id, int* p_eax, int* p_ebx, int* p_ecx, int* p_edx)
 #endif
 }
 
+void
+mono_arch_setup_thread (void)
+{
+}
+
 /*
  * Initialize the cpu to execute managed code.
  */

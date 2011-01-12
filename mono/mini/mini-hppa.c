@@ -154,6 +154,11 @@ mono_arch_fregname (int reg)
 		return "unknown";
 }
 
+void
+mono_arch_setup_thread (void)
+{
+}
+
 /*
  * Initialize the cpu to execute managed code.
  */

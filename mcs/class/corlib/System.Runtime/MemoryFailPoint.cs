@@ -36,7 +36,7 @@ namespace System.Runtime
 		[MonoTODO]
 		public MemoryFailPoint (int sizeInMegabytes)
 		{
-			throw new NotImplementedException ();
+			//throw new NotImplementedException ();
 		}
 
 		~MemoryFailPoint ()
@@ -46,7 +46,7 @@ namespace System.Runtime
 		[MonoTODO]
 		public void Dispose ()
 		{
-			throw new NotImplementedException ();
+			//throw new NotImplementedException ();
 		}
 	}
 }
