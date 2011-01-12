@@ -1594,6 +1594,26 @@ void GC_generic_lock(pthread_mutex_t * lock)
 		ABORT("Unexpected error from pthread_mutex_trylock");
         }
     }
+
+	/* On Mac, pthread_mutex_lock is not very performant, so we will just */
+	/* spin-lock for ~15msec between calls to pthread_mutex_trylock.      */
+    struct timespec ts;
+    ts.tv_sec = 0;
+    ts.tv_nsec = 1 << 24;
+    for (;;) {
+        switch(pthread_mutex_trylock(lock)) {
+	    case 0:
+#		ifdef LOCK_STATS
+		    ++GC_spin_count;
+#		endif
+		return;
+	    case EBUSY:
+		break;
+	    default:
+		ABORT("Unexpected error from pthread_mutex_trylock");
+        }
+	    nanosleep(&ts, 0);
+    }
 #endif /* !NO_PTHREAD_TRYLOCK */
 #   ifdef LOCK_STATS
 	++GC_block_count;

@@ -163,8 +163,8 @@ namespace System.Net {
 		}
 
 		public string Path {
-			get { return (path == null) ? String.Empty : path; }
-			set { path = (value == null) ? String.Empty : value; }
+			get { return path ?? String.Empty; }
+			set { path = value ?? String.Empty; }
 		}
 
 		public string Port {

@@ -1100,6 +1100,11 @@ catch_SIGILL(int sigNo, siginfo_t *info, void *act) {
 
 }
 
+void
+mono_arch_setup_thread (void)
+{
+}
+
 /*========================= End of Function ========================*/
 
 /*------------------------------------------------------------------*/

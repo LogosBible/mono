@@ -526,6 +526,11 @@ mono_arch_get_this_arg_from_call (MonoGenericSharingContext *gsctx, MonoMethodSi
 	return (gpointer)regs [mips_a0];
 }
 
+void
+mono_arch_setup_thread (void)
+{
+}
+
 /*
  * Initialize the cpu to execute managed code.
  */

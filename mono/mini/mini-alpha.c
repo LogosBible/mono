@@ -4308,6 +4308,11 @@ mono_arch_setup_jit_tls_data (MonoJitTlsData *tls)
    pthread_setspecific (lmf_addr_key, &tls->lmf);
 }
 
+void
+mono_arch_setup_thread (void)
+{
+}
+
 /*------------------------------------------------------------------*/
 /*                                                                  */
 /* Name         - mono_arch_cpu_init                                */
