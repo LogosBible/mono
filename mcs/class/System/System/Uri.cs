@@ -1411,6 +1411,8 @@ namespace System {
 			} else if (pos == 1) {
 				if (!IsAlpha (uriString [0]))
 					return "URI scheme must start with a letter.";
+				if (uriString.Length == 2)
+					return "Invalid URI: The format of the URI could not be determined.";
 				// This means 'a:' == windows full path.
 				string msg = ParseAsWindowsAbsoluteFilePath (uriString);
 				if (msg != null)

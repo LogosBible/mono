@@ -581,6 +581,11 @@ linux_find_auxv (int *count)
 }
 #endif
 
+void
+mono_arch_setup_thread (void)
+{
+}
+
 #define MAX_AUX_ENTRIES 128
 /* 
  * PPC_FEATURE_POWER4, PPC_FEATURE_POWER5, PPC_FEATURE_POWER5_PLUS, PPC_FEATURE_CELL,

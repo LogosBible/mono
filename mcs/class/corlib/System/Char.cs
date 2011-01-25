@@ -54,12 +54,16 @@ namespace System
 		static Char ()
 		{
 			unsafe {
-				GetDataTablePointers (out category_data, out numeric_data, out numeric_data_values,
+				GetDataTablePointers (LastDirectMapped, LastChar, LastCharPart1, FirstCharPart2, MaxTableIndex,
+					out category_data, out category_index_part1, out category_index_part2,
+					out numeric_data, out numeric_data_values,
 					out to_lower_data_low, out to_lower_data_high, out to_upper_data_low, out to_upper_data_high);
 			}
 		}
 
 		private readonly unsafe static byte *category_data;
+		private readonly unsafe static ushort *category_index_part1;
+		private readonly unsafe static ushort *category_index_part2;
 		private readonly unsafe static byte *numeric_data;
 		private readonly unsafe static double *numeric_data_values;
 		private readonly unsafe static ushort *to_lower_data_low;
@@ -67,8 +71,16 @@ namespace System
 		private readonly unsafe static ushort *to_upper_data_low;
 		private readonly unsafe static ushort *to_upper_data_high;
 
+		private const char LastDirectMapped = (char) 0x7ff;
+		private const int LastChar = 0x10ffff;
+		private const int LastCharPart1 = 0x2faff;
+		private const int FirstCharPart2 = 0xe0000;
+		private const int MaxTableIndex = 0x2710;
+
 		[MethodImplAttribute(System.Runtime.CompilerServices.MethodImplOptions.InternalCall)]
-		private unsafe static extern void GetDataTablePointers (out byte *category_data,
+		private unsafe static extern void GetDataTablePointers (int last_direct_mapped,
+				int last_char, int last_char_part1, int first_char_part2, int max_table_index,
+				out byte *category_data, out ushort *category_index_part1, out ushort *category_index_part2,
 				out byte *numeric_data, out double *numeric_data_values,
 				out ushort *to_lower_data_low, out ushort *to_lower_data_high,
 				out ushort *to_upper_data_low, out ushort *to_upper_data_high);
@@ -192,23 +204,53 @@ namespace System
 			return GetNumericValue (s[index]);
 		}
 
+		private static byte GetCategoryCode (int codepoint)
+		{
+			unsafe {
+				int index;
+
+				if (codepoint >= 0 && codepoint <= LastCharPart1)
+					index = category_index_part1 [codepoint >> 8];
+				else if (codepoint >= FirstCharPart2 && codepoint <= LastChar)
+					index = category_index_part2 [(codepoint - FirstCharPart2) >> 8];
+				else
+					return (byte)UnicodeCategory.OtherNotAssigned;
+
+				if (index >= MaxTableIndex)
+					// Constant for page, directly encoded.
+					return (byte)(index - MaxTableIndex);
+				else
+					return category_data [(index << 8) + (codepoint & 0xff)];
+			}
+		}
+
 		public static UnicodeCategory GetUnicodeCategory (char c)
 		{
 			unsafe {
-				return (UnicodeCategory)(category_data [c]);
+				byte category = c <= LastDirectMapped ? category_data [c] : GetCategoryCode (c);
+
+				return (UnicodeCategory)category;
 			}
 		}
 
 		public static UnicodeCategory GetUnicodeCategory (string s, int index)
 		{
 			CheckParameter (s, index);
-			return GetUnicodeCategory (s[index]);
+			UnicodeCategory c = GetUnicodeCategory (s[index]);
+
+			if (c != UnicodeCategory.Surrogate || !IsSurrogatePair (s, index))
+				return c;
+
+			int utf32 = ConvertToUtf32 (s [index], s [index + 1]);
+			return (UnicodeCategory)GetCategoryCode (utf32);
 		}
 
 		public static bool IsControl (char c)
 		{
 			unsafe {
-				return (category_data [c] == (byte)UnicodeCategory.Control);
+				byte category = c <= LastDirectMapped ? category_data [c] : GetCategoryCode (c);
+
+				return (category == (byte)UnicodeCategory.Control);
 			}
 		}
 
@@ -221,7 +263,9 @@ namespace System
 		public static bool IsDigit (char c)
 		{
 			unsafe {
-				return (category_data [c] == (byte)UnicodeCategory.DecimalDigitNumber);
+				byte category = c <= LastDirectMapped ? category_data [c] : GetCategoryCode (c);
+
+				return (category == (byte)UnicodeCategory.DecimalDigitNumber);
 			}
 		}
 
@@ -245,7 +289,9 @@ namespace System
 		public static bool IsLetter (char c)
 		{
 			unsafe {
-				return category_data [c] <= ((byte)UnicodeCategory.OtherLetter);
+				byte category = c <= LastDirectMapped ? category_data [c] : GetCategoryCode (c);
+
+				return category <= ((byte)UnicodeCategory.OtherLetter);
 			}
 		}
 
@@ -258,7 +304,7 @@ namespace System
 		public static bool IsLetterOrDigit (char c)
 		{
 			unsafe {
-				int category = category_data [c];
+				int category = c <= LastDirectMapped ? category_data [c] : GetCategoryCode (c);
 				return (category <= ((int)UnicodeCategory.OtherLetter) ||
 				        category == ((int)UnicodeCategory.DecimalDigitNumber));
 			}
@@ -273,7 +319,9 @@ namespace System
 		public static bool IsLower (char c)
 		{
 			unsafe {
-				return (category_data [c] == (byte)UnicodeCategory.LowercaseLetter);
+				byte category = c <= LastDirectMapped ? category_data [c] : GetCategoryCode (c);
+
+				return (category == (byte)UnicodeCategory.LowercaseLetter);
 			}
 		}
 
@@ -297,7 +345,7 @@ namespace System
 		public static bool IsNumber (char c)
 		{
 			unsafe {
-				int category = category_data [c];
+				int category = c <= LastDirectMapped ? category_data [c] : GetCategoryCode (c);
 				return (category >= ((int)UnicodeCategory.DecimalDigitNumber) &&
 				        category <= ((int)UnicodeCategory.OtherNumber));
 			}
@@ -312,7 +360,7 @@ namespace System
 		public static bool IsPunctuation (char c)
 		{
 			unsafe {
-				int category = category_data [c];
+				int category = c <= LastDirectMapped ? category_data [c] : GetCategoryCode (c);
 				return (category >= ((int)UnicodeCategory.ConnectorPunctuation) &&
 				        category <= ((int)UnicodeCategory.OtherPunctuation));
 			}
@@ -327,7 +375,7 @@ namespace System
 		public static bool IsSeparator (char c)
 		{
 			unsafe {
-				int category = category_data [c];
+				int category = c <= LastDirectMapped ? category_data [c] : GetCategoryCode (c);
 				return (category >= ((int)UnicodeCategory.SpaceSeparator) &&
 				        category <= ((int)UnicodeCategory.ParagraphSeparator));
 			}
@@ -342,7 +390,9 @@ namespace System
 		public static bool IsSurrogate (char c)
 		{
 			unsafe {
-				return (category_data [c] == (byte)UnicodeCategory.Surrogate);
+				byte category = c <= LastDirectMapped ? category_data [c] : GetCategoryCode (c);
+
+				return (category == (byte)UnicodeCategory.Surrogate);
 			}
 		}
 
@@ -355,7 +405,7 @@ namespace System
 		public static bool IsSymbol (char c)
 		{
 			unsafe {
-				int category = category_data [c];
+				int category = c <= LastDirectMapped ? category_data [c] : GetCategoryCode (c);
 				return (category >= ((int)UnicodeCategory.MathSymbol) &&
 				        category <= ((int)UnicodeCategory.OtherSymbol));
 			}
@@ -370,7 +420,9 @@ namespace System
 		public static bool IsUpper (char c)
 		{
 			unsafe {
-				return (category_data [c] == (byte)UnicodeCategory.UppercaseLetter);
+				byte category = c <= LastDirectMapped ? category_data [c] : GetCategoryCode (c);
+
+				return (category == (byte)UnicodeCategory.UppercaseLetter);
 			}
 		}
 
@@ -383,7 +435,7 @@ namespace System
 		public static bool IsWhiteSpace (char c)
 		{
 			unsafe {
-				int category = category_data [c];
+				int category = c <= LastDirectMapped ? category_data [c] : GetCategoryCode (c);
 				if (category <= ((int)UnicodeCategory.OtherNumber))
 					return false;
 				if (category <= ((int)UnicodeCategory.ParagraphSeparator))

@@ -293,6 +293,86 @@ namespace MonoTests.System
 			Assert.AreEqual ("#Features", uri.Fragment, "#1");
 			Assert.AreEqual ("http://www.mono-project.com/Main_Page#Features", uri.Uri.ToString (), "#2");
 		}
+	
+		[Test]
+		public void TestEmptyHost532291 ()
+		{
+			UriBuilder uri = new UriBuilder() { Scheme = "testschema", Host = string.Empty, Path = "port" };
+			String uriStringActual;
+			String uriStringExpected = "testschema:port";
+			
+			uriStringActual = uri.ToString();
+			Assert.AreEqual(uriStringExpected, uriStringActual, "#1");
+		}
+	
+		[Test] 
+		public void TestUsingAMailToScheme ()
+		{
+			UriBuilder uri = new UriBuilder() { Scheme = "mailto", Host = string.Empty, Path = "test@tempuri.com" };
+			String uriStringActual;
+			String uriStringExpected = "mailto:test@tempuri.com";
+			
+			uriStringActual = uri.ToString();
+			Assert.AreEqual(uriStringExpected, uriStringActual, "#1");
+		}
+	
+		[Test] 
+		public void TestUsingAMailToSchemeWithFragmentAndEmptyHost ()
+		{
+			UriBuilder uri = new UriBuilder() { Scheme = "mailto", Host = string.Empty, Path = "test@tempuri.com" };
+			String uriStringActual;
+			String uriStringExpected = "mailto:test@tempuri.com#fragment";
+			uri.Fragment = "fragment";
+			
+			uriStringActual = uri.ToString();
+			Assert.AreEqual(uriStringExpected, uriStringActual, "#1");
+		}
+	
+		[Test] 
+		public void TestUsingANewsSchemaWithNoHost ()
+		{
+			UriBuilder uri = new UriBuilder() { Scheme = "news", Host = string.Empty, Path = "test@tempuri.com" };
+			String uriStringActual;
+			String uriStringExpected = "news:test@tempuri.com";
+			
+			uriStringActual = uri.ToString();
+			Assert.AreEqual(uriStringExpected, uriStringActual, "#1");
+		}
+	
+		[Test] 
+		public void TestUsingAMailToSchemeWithFragment ()
+		{
+			UriBuilder uri = new UriBuilder() { Scheme = "mailto", Host = "localhost", Path = "test@tempuri.com" };
+			String uriStringActual;
+			String uriStringExpected = "mailto:localhost/test@tempuri.com#fragment";
+			uri.Fragment = "fragment";
+			
+			uriStringActual = uri.ToString();
+			Assert.AreEqual(uriStringExpected, uriStringActual, "#1");
+		}
+	
+		[Test] 
+		public void TestUsingANewsSchema ()
+		{
+			UriBuilder uri = new UriBuilder() { Scheme = "news", Host = "localhost", Path = "test@tempuri.com" };
+			String uriStringActual;
+			String uriStringExpected = "news:localhost/test@tempuri.com";
+			
+			uriStringActual = uri.ToString();
+			Assert.AreEqual(uriStringExpected, uriStringActual, "#1");
+		}
+	
+		[Test] 
+		public void TestNormalSchemeWithUnusalPort532291 ()
+		{
+			UriBuilder uriBuilder = new UriBuilder { Scheme = "testschema", Host = string.Empty, Path = "port1:port2" };
+			String uriStringActual;
+			String uriStringExpected = "testschema:port1:port2";
+			
+			Uri uri = uriBuilder.Uri;
+			
+			uriStringActual = uri.ToString();
+			Assert.AreEqual(uriStringExpected, uriStringActual, "#1");
+		}
 	}
 }
-

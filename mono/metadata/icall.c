@@ -7120,21 +7120,34 @@ ves_icall_System_NumberFormatter_GetFormatterTables (guint64 const **mantissas,
 
 /* These parameters are "readonly" in corlib/System/Char.cs */
 static void
-ves_icall_System_Char_GetDataTablePointers (guint8 const **category_data,
-					    guint8 const **numeric_data,
-					    gdouble const **numeric_data_values,
-					    guint16 const **to_lower_data_low,
-					    guint16 const **to_lower_data_high,
-					    guint16 const **to_upper_data_low,
-					    guint16 const **to_upper_data_high)
+ves_icall_System_Char_GetDataTablePointers (int last_direct_mapped, int last_char,
+                                            int last_char_part1, int first_char_part2,
+                                            int max_table_index,
+                                            guint8 const **category_data,
+                                            guint16 const **category_index_part1,
+                                            guint16 const **category_index_part2,
+                                            guint8 const **numeric_data,
+                                            gdouble const **numeric_data_values,
+                                            guint16 const **to_lower_data_low,
+                                            guint16 const **to_lower_data_high,
+                                            guint16 const **to_upper_data_low,
+                                            guint16 const **to_upper_data_high)
 {
-	*category_data = CategoryData;
-	*numeric_data = NumericData;
-	*numeric_data_values = NumericDataValues;
-	*to_lower_data_low = ToLowerDataLow;
-	*to_lower_data_high = ToLowerDataHigh;
-	*to_upper_data_low = ToUpperDataLow;
-	*to_upper_data_high = ToUpperDataHigh;
+        g_assert (last_direct_mapped <= CATEGORY_DATA_LAST_DIRECT_MAPPED);
+        g_assert (last_char == CATEGORY_DATA_LAST_CHAR);
+        g_assert (last_char_part1 == CATEGORY_DATA_LAST_CHAR_PART1);
+        g_assert (first_char_part2 == CATEGORY_DATA_FIRST_CHAR_PART2);
+        g_assert (max_table_index == CATEGORY_DATA_MAX_TABLE_INDEX);
+
+        *category_data = CategoryData;
+        *category_index_part1 = CategoryIndexPart1;
+        *category_index_part2 = CategoryIndexPart2;
+        *numeric_data = NumericData;
+        *numeric_data_values = NumericDataValues;
+        *to_lower_data_low = ToLowerDataLow;
+        *to_lower_data_high = ToLowerDataHigh;
+        *to_upper_data_low = ToUpperDataLow;
+        *to_upper_data_high = ToUpperDataHigh;
 }
 
 static gint32

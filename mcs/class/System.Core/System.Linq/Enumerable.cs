@@ -52,11 +52,11 @@ namespace System.Linq
 		static class Function<T> {
 			public static readonly Func<T, T> Identity = (t) => t;
 		}
-		
+
 		static class EmptyOf<T> {
 			public static readonly T[] Instance = new T [0];
 		}
-		
+
 		static class ReadOnlyCollectionOf<T> {
 			public static readonly ReadOnlyCollection<T> Empty = new ReadOnlyCollection<T> (EmptyOf<T>.Instance);
 		}
@@ -705,6 +705,12 @@ namespace System.Linq
 				}
 				Grouping<TKey, TSource> grouping = new Grouping<TKey, TSource> (group.Key, group.Value);
 				yield return grouping;
+				counter++;
+			}
+
+			if (counter == nullCounter) {
+				Grouping<TKey, TSource> nullGroup = new Grouping<TKey, TSource> (default (TKey), nullList);
+				yield return nullGroup;
 				counter++;
 			}
 		}
@@ -2167,17 +2173,17 @@ namespace System.Linq
 			Check.SourceAndKeyElementSelectors (source, keySelector, elementSelector);
 
 			List<TElement> nullKeyElements = null;
-			
+
 			var dictionary = new Dictionary<TKey, List<TElement>> (comparer ?? EqualityComparer<TKey>.Default);
 			foreach (var element in source) {
 				var key = keySelector (element);
 
 				List<TElement> list;
-				
+
 				if (key == null) {
 					if (nullKeyElements == null)
 						nullKeyElements = new List<TElement> ();
-					
+
 					list = nullKeyElements;
 				} else if (!dictionary.TryGetValue (key, out list)) {
 					list = new List<TElement> ();

@@ -92,6 +92,11 @@ namespace System.Text.RegularExpressions
 
 		virtual public Match Scan (Regex regex, string text, int start, int end)
 		{
+			return Scan (regex, text, start, end, false);
+		}
+
+		virtual public Match Scan (Regex regex, string text, int start, int end, bool substring_match)
+		{
 			throw new NotImplementedException ("Scan method must be implemented in derived classes");
 		}
 

@@ -2321,6 +2321,8 @@ mono_thread_start_cb (gsize tid, gpointer stack_start, gpointer func)
 	mono_debugger_thread_created (tid, thread->root_domain_thread, jit_tls, func);
 	if (thread)
 		thread->jit_data = jit_tls;
+
+	mono_arch_setup_thread ();
 }
 
 void (*mono_thread_attach_aborted_cb ) (MonoObject *obj) = NULL;
@@ -2345,6 +2347,8 @@ mono_thread_attach_cb (gsize tid, gpointer stack_start)
 		thread->jit_data = jit_tls;
 	if (mono_profiler_get_events () & MONO_PROFILE_STATISTICAL)
 		mono_runtime_setup_stat_profiler ();
+
+	mono_arch_setup_thread ();
 }
 
 static void

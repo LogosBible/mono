@@ -568,6 +568,11 @@ mono_arch_get_argument_info (MonoMethodSignature *csig, int param_count, MonoJit
 	return args_size;
 }
 
+void
+mono_arch_setup_thread (void)
+{
+}
+
 /*
  * Initialize the cpu to execute managed code.
  */

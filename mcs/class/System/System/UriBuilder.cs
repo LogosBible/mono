@@ -252,7 +252,12 @@ namespace System
 			StringBuilder builder = new StringBuilder ();
 
 			builder.Append (scheme);
-			builder.Append ("://");
+			if (host != String.Empty &&
+			    !(UriParser.MailToLikeScheme (scheme))) {
+				builder.Append ("://");
+			} else {
+				builder.Append(":");
+			}
 
 			if (username != String.Empty) {
 				builder.Append (username);
@@ -267,7 +272,8 @@ namespace System
 
 			if (path != String.Empty &&
 			    builder [builder.Length - 1] != '/' &&
-			    path.Length > 0 && path [0] != '/')
+			    path.Length > 0 && path [0] != '/' &&
+				host != String.Empty)
 				builder.Append ('/');
 			builder.Append (path);
 			builder.Append (query);

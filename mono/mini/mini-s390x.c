@@ -1091,6 +1091,11 @@ catch_SIGILL(int sigNo, siginfo_t *info, void *act) {
 
 /*========================= End of Function ========================*/
 
+void
+mono_arch_setup_thread (void)
+{
+}
+
 /*------------------------------------------------------------------*/
 /*                                                                  */
 /* Name		- mono_arch_cpu_init                                */

@@ -1066,9 +1066,9 @@ init_perf_counter (const char *category, const char *counter)
 void
 mono_thread_pool_init ()
 {
-	int threads_per_cpu = THREADS_PER_CPU;
-	int cpu_count;
-	int n;
+	int threads_per_cpu = 1;
+	int thread_count;
+	int cpu_count = mono_cpu_count ();
 
 	if ((int) InterlockedCompareExchange (&tp_inited, 1, 0) == 1)
 		return;
@@ -1077,15 +1077,14 @@ mono_thread_pool_init ()
 	InitializeCriticalSection (&socket_io_data.io_lock);
 	if (g_getenv ("MONO_THREADS_PER_CPU") != NULL) {
 		threads_per_cpu = atoi (g_getenv ("MONO_THREADS_PER_CPU"));
-		if (threads_per_cpu < THREADS_PER_CPU)
-			threads_per_cpu = THREADS_PER_CPU;
+		if (threads_per_cpu < 1)
+			threads_per_cpu = 1;
 	}
 
-	cpu_count = mono_cpu_count ();
-	n = 8 + 2 * cpu_count; /* 8 is minFreeThreads for ASP.NET */
-	threadpool_init (&async_tp, n, n + threads_per_cpu * cpu_count, async_invoke_thread);
+	thread_count = MIN (cpu_count * threads_per_cpu, 100 * cpu_count);
+	threadpool_init (&async_tp, thread_count, MAX (100 * cpu_count, thread_count), async_invoke_thread);
 #ifndef DISABLE_SOCKETS
-	threadpool_init (&async_io_tp, 2 * cpu_count, 8 * cpu_count, async_invoke_io_thread);
+	threadpool_init (&async_io_tp, cpu_count * 2, cpu_count * 4, async_invoke_io_thread);
 #endif
 
 	async_call_klass = mono_class_from_name (mono_defaults.corlib, "System", "MonoAsyncCall");
@@ -1638,13 +1637,20 @@ ves_icall_System_Threading_ThreadPool_SetMinThreads (gint workerThreads, gint co
 MonoBoolean
 ves_icall_System_Threading_ThreadPool_SetMaxThreads (gint workerThreads, gint completionPortThreads)
 {
+	gint32 min_threads;
+	gint32 min_io_threads;
+	gint32 cpu_count;
+
 	MONO_ARCH_SAVE_REGS;
 
-	if (workerThreads < async_tp.max_threads)
+	cpu_count = mono_cpu_count ();
+	min_threads = async_tp.min_threads;
+	if (workerThreads < min_threads || workerThreads < cpu_count)
 		return FALSE;
 
 	/* We don't really have the concept of completion ports. Do we care here? */
-	if (completionPortThreads < async_io_tp.max_threads)
+	min_io_threads = async_io_tp.min_threads;
+	if (completionPortThreads < min_io_threads || completionPortThreads < cpu_count)
 		return FALSE;
 
 	InterlockedExchange (&async_tp.max_threads, workerThreads);

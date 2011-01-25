@@ -631,6 +631,23 @@ cpuid (int id, int* p_eax, int* p_ebx, int* p_ecx, int* p_edx)
 	return 0;
 }
 
+void
+mono_arch_setup_thread (void)
+{
+	/* spec compliance requires running with double precision */
+#ifndef _MSC_VER
+	guint16 fpcw;
+
+	__asm__  __volatile__ ("fnstcw %0\n": "=m" (fpcw));
+	fpcw &= ~X86_FPCW_PRECC_MASK;
+	fpcw |= X86_FPCW_PREC_DOUBLE;
+	__asm__  __volatile__ ("fldcw %0\n": : "m" (fpcw));
+	__asm__  __volatile__ ("fnstcw %0\n": "=m" (fpcw));
+#else
+	_control87 (_PC_53, MCW_PC);
+#endif
+}
+
 /*
  * Initialize the cpu to execute managed code.
  */

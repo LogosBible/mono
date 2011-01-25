@@ -338,6 +338,13 @@ namespace System {
 			string lc = schemeName.ToLower (CultureInfo.InvariantCulture);
 			return (UriParser) table [lc];
 		}
+		
+		internal static bool MailToLikeScheme (string schemeName)
+		{
+			string lc = schemeName.ToLower (CultureInfo.InvariantCulture);
+			return (lc.Contains ("mailto") && (lc.Length == "mailto".Length)) ||
+				(lc.Contains ("news") && (lc.Length == "news".Length));
+		}
 	}
 }
 

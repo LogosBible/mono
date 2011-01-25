@@ -63,7 +63,7 @@ namespace System.Linq {
 				if (child_context != null)
 					return child_context.Compare (first_index, second_index);
 				else
-					comparison = first_index - second_index;
+					comparison = direction != SortDirection.Descending ? first_index - second_index : second_index - first_index;
 			}
 
 			return direction == SortDirection.Descending ? -comparison : comparison;
