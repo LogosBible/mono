@@ -13,10 +13,10 @@
 // distribute, sublicense, and/or sell copies of the Software, and to
 // permit persons to whom the Software is furnished to do so, subject to
 // the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be
 // included in all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 // EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 // MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
@@ -33,7 +33,7 @@ using System.Text;
 
 // See RFC 2396 for more info on URI's.
 
-namespace System 
+namespace System
 {
 	public class UriBuilder
 	{
@@ -45,13 +45,13 @@ namespace System
 		private string fragment;
 		private string username;
 		private string password;
-		
+
 		private Uri uri;
 		private bool modified;
-		
-		
+
+
 		// Constructors
-		
+
 		public UriBuilder ()
 #if NET_2_0
 			: this (Uri.UriSchemeHttp, "localhost")
@@ -64,7 +64,7 @@ namespace System
 		public UriBuilder (string uri) : this (new Uri (uri))
 		{
 		}
-		
+
 		public UriBuilder (Uri uri)
 		{
 			scheme = uri.Scheme;
@@ -83,8 +83,8 @@ namespace System
 			}
 			modified = true;
 		}
-		
-		public UriBuilder (string schemeName, string hostName) 
+
+		public UriBuilder (string schemeName, string hostName)
 		{
 			Scheme = schemeName;
 			Host = hostName;
@@ -96,13 +96,13 @@ namespace System
 			password = String.Empty;
 			modified = true;
 		}
-		
-		public UriBuilder (string scheme, string host, int portNumber) 
+
+		public UriBuilder (string scheme, string host, int portNumber)
 			: this (scheme, host)
 		{
 			Port = portNumber;
 		}
-		
+
 		public UriBuilder (string scheme, string host, int port, string pathValue)
 			: this (scheme, host, port)
 		{
@@ -114,18 +114,18 @@ namespace System
 		{
 			if (extraValue == null || extraValue.Length == 0)
 				return;
-				
-			if (extraValue [0] == '#') 
+
+			if (extraValue [0] == '#')
 				Fragment = extraValue.Remove (0, 1);
-			else if (extraValue [0] == '?') 
+			else if (extraValue [0] == '?')
 				Query = extraValue.Remove (0, 1);
-			else 
+			else
 				throw new ArgumentException ("extraValue");
 		}
 
-		
+
 		// Properties
-		
+
 		public string Fragment {
 			get { return fragment; }
 			set {
@@ -157,19 +157,19 @@ namespace System
 				modified = true;
 			}
 		}
-		
+
 		public string Path {
 			get { return path; }
 			set {
 				if (value == null || value.Length == 0) {
 					path = "/";
 				} else {
-					path = Uri.EscapeString (value.Replace ('\\', '/'), false, true, true);
+					path = Uri.EscapeString (value.Replace ('\\', '/'), Uri.EscapeCommonHexBracketsQuery);
 				}
 				modified = true;
 			}
 		}
-		
+
 		public int Port {
 			get { return port; }
 			set {
@@ -185,12 +185,12 @@ namespace System
 				modified = true;
 			}
 		}
-		
+
 		public string Query {
 			get { return query; }
 			set {
-				// LAMESPEC: it doesn't say to always prepend a 
-				// question mark to the value.. it does say this 
+				// LAMESPEC: it doesn't say to always prepend a
+				// question mark to the value.. it does say this
 				// for fragment.
 				if (value == null || value.Length == 0)
 					query = String.Empty;
@@ -203,7 +203,7 @@ namespace System
 				modified = true;
 			}
 		}
-		
+
 		public string Scheme {
 			get { return scheme; }
 			set {
@@ -216,17 +216,17 @@ namespace System
 				modified = true;
 			}
 		}
-		
+
 		public Uri Uri {
 			get {
-				if (!modified) 
+				if (!modified)
 					return uri;
 				uri = new Uri (ToString (), true);
 				modified = false;
 				return uri;
 			}
 		}
-		
+
 		public string UserName {
 			get { return username; }
 			set {
@@ -236,17 +236,17 @@ namespace System
 		}
 
 		// Methods
-		
-		public override bool Equals (object rparam) 
+
+		public override bool Equals (object rparam)
 		{
 			return (rparam == null) ? false : this.Uri.Equals (rparam.ToString ());
 		}
-		
+
 		public override int GetHashCode ()
 		{
 			return this.Uri.GetHashCode ();
 		}
-		
+
 		public override string ToString ()
 		{
 			StringBuilder builder = new StringBuilder ();
