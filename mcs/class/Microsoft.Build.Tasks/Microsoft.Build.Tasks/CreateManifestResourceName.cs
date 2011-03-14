@@ -71,7 +71,8 @@ namespace Microsoft.Build.Tasks {
 					}
 
 					manifestResourceNames [i] = new TaskItem (item);
-					manifestResourceNames [i].ItemSpec = CreateManifestName (
+					string logicalName = item.GetMetadata ("LogicalName");
+					manifestResourceNames [i].ItemSpec = !string.IsNullOrEmpty (logicalName) ? Path.GetFileNameWithoutExtension (logicalName) : CreateManifestName (
 								filename, item.GetMetadata ("TargetPath"), rootNamespace,
 								dependentUponFileName, binaryStream);
 				} finally {
