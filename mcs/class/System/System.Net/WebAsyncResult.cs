@@ -139,15 +139,10 @@ namespace System.Net
 		{
 			if (!callbackDone && cb != null) {
 				callbackDone = true;
-				ThreadPool.QueueUserWorkItem (CB, null);
+				cb (this);
 			}
 		}
 
-		void CB (object unused)
-		{
-			cb (this);
-		}
-		
 		internal void WaitUntilComplete ()
 		{
 			if (IsCompleted)
