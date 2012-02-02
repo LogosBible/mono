@@ -244,12 +244,17 @@ void GC_clear_a_few_frames()
 static word GC_collect_at_heapsize = (word)(-1);
 
 /* Have we allocated enough to amortize a collection? */
-GC_bool GC_should_collect()
+GC_bool GC_should_collect_without_memory_pressure()
 {
     return(GC_adj_words_allocd() >= min_words_allocd()
 	   || GC_heapsize >= GC_collect_at_heapsize);
 }
 
+GC_bool GC_should_collect()
+{
+    return(GC_should_collect_without_memory_pressure()
+	   || (GC_heapsize + GC_memory_pressure) >= GC_collect_at_heapsize);
+}
 
 void GC_notify_full_gc()
 {
@@ -1041,7 +1046,7 @@ GC_bool ignore_off_page;
     if (!GC_incremental && !GC_dont_gc &&
 	((GC_dont_expand && GC_words_allocd > 0)
 	 || (GC_fo_entries > (last_fo_entries + 500) && (last_words_finalized  || GC_words_finalized))
-	 || GC_should_collect())) {
+	 || GC_should_collect_without_memory_pressure())) {
       GC_gcollect_inner();
       last_fo_entries = GC_fo_entries;
       last_words_finalized = GC_words_finalized;

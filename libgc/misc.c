@@ -456,6 +456,15 @@ size_t GC_get_heap_size GC_PROTO(())
     return ((size_t) GC_heapsize);
 }
 
+void GC_add_memory_pressure GC_PROTO((GC_signed_word value))
+{
+    LOCK();
+    GC_memory_pressure += value;
+    UNLOCK();
+    if (value > 0)
+        GC_collect_a_little();
+}
+
 size_t GC_get_free_bytes GC_PROTO(())
 {
     return ((size_t) GC_large_free_bytes);

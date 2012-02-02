@@ -1015,6 +1015,7 @@ struct _GC_arrays {
   					/* currently only save the calling  */
   					/* stack.			    */
 #endif
+  word _memory_pressure;
 };
 
 GC_API GC_FAR struct _GC_arrays GC_arrays; 
@@ -1085,6 +1086,7 @@ GC_API GC_FAR struct _GC_arrays GC_arrays;
 # ifdef MERGE_SIZES
 #   define GC_size_map GC_arrays._size_map
 # endif
+# define GC_memory_pressure GC_arrays._memory_pressure
 
 # define beginGC_arrays ((ptr_t)(&GC_arrays))
 # define endGC_arrays (((ptr_t)(&GC_arrays)) + (sizeof GC_arrays))

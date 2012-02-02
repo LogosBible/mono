@@ -414,6 +414,10 @@ GC_API int GC_try_to_collect GC_PROTO((GC_stop_func stop_func));
 /* Includes some pages that were allocated but never written.		*/
 GC_API size_t GC_get_heap_size GC_PROTO((void));
 
+/* Adjusts the garbage collector's view of how many bytes of memory are	*/
+/* indirectly referenced by managed objects				*/
+void GC_add_memory_pressure GC_PROTO((GC_signed_word value));
+
 /* Return a lower bound on the number of free bytes in the heap.	*/
 GC_API size_t GC_get_free_bytes GC_PROTO((void));
 
