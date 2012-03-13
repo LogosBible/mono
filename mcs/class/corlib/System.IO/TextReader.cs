@@ -129,10 +129,11 @@ namespace System.IO {
 
 		public virtual string ReadToEnd ()
 		{ 
-			var result = new System.Text.StringBuilder ();
-			int c;
-			while ((c = Read ()) != -1)
-				result.Append ((char) c);
+			int charactersRead;
+			char [] buffer = new char[0x1000];
+			var result = new System.Text.StringBuilder (0x1000);
+			while ((charactersRead = Read (buffer, 0, 0x1000)) != 0)
+				result.Append (buffer, 0, charactersRead);
 			return result.ToString ();
 		}
 
