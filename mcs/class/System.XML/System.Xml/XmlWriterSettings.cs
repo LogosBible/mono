@@ -78,10 +78,9 @@ namespace System.Xml
 			encoding = Encoding.UTF8;
 			indent = false;
 			indentChars = "  ";
-			// LAMESPEC: MS.NET says it is "\r\n", but it is silly decision.
-			newLineChars = Environment.NewLine;
+			newLineChars = "\r\n";
 			newLineOnAttributes = false;
-			newLineHandling = NewLineHandling.None;
+			newLineHandling = NewLineHandling.Replace;
 			omitXmlDeclaration = false;
 			outputMethod = XmlOutputMethod.AutoDetect;
 		}

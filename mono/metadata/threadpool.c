@@ -1447,16 +1447,6 @@ async_invoke_thread (gpointer data)
 						if (klass == mono_defaults.threadabortexception_class)
 							mono_thread_internal_reset_abort (thread);
 					}
-					if (is_socket && tp->is_io) {
-						MonoSocketAsyncResult *state = (MonoSocketAsyncResult *) data;
-
-						if (state->completed && state->callback) {
-							MonoAsyncResult *cb_ares;
-							cb_ares = create_simple_asyncresult ((MonoObject *) state->callback,
-												(MonoObject *) state);
-							icall_append_job ((MonoObject *) cb_ares);
-						}
-					}
 					mono_domain_set (mono_get_root_domain (), TRUE);
 				}
 				mono_thread_pop_appdomain_ref ();

@@ -423,7 +423,7 @@ namespace System.Xml.Serialization
 
 		public void Serialize (Stream stream, object o)
 		{
-			XmlTextWriter xmlWriter = new XmlTextWriter (stream, System.Text.Encoding.Default);
+			XmlTextWriter xmlWriter = new XmlTextWriter (stream, null);
 			xmlWriter.Formatting = Formatting.Indented;
 			Serialize (xmlWriter, o, null);
 		}
@@ -442,7 +442,7 @@ namespace System.Xml.Serialization
 
 		public void Serialize (Stream stream, object o, XmlSerializerNamespaces	namespaces)
 		{
-			XmlTextWriter xmlWriter	= new XmlTextWriter (stream, System.Text.Encoding.Default);
+			XmlTextWriter xmlWriter	= new XmlTextWriter (stream, null);
 			xmlWriter.Formatting = Formatting.Indented;
 			Serialize (xmlWriter, o, namespaces);
 		}

@@ -257,6 +257,7 @@ mono_gc_collection_count (int generation)
 void
 mono_gc_add_memory_pressure (gint64 value)
 {
+	GC_add_memory_pressure (value);
 }
 
 /**

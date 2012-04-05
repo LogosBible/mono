@@ -2723,7 +2723,7 @@ mono_thread_attach_cb (intptr_t tid, gpointer stack_start)
 	if (mono_profiler_get_events () & MONO_PROFILE_STATISTICAL)
 		mono_runtime_setup_stat_profiler ();
 
-	mono_arch_cpu_init ();
+	mono_arch_setup_thread ();
 }
 
 static void

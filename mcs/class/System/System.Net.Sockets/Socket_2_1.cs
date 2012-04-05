@@ -276,7 +276,9 @@ namespace System.Net.Sockets {
 					if (sac != null)
 						Socket.socket_pool_queue (sac, worker.result);
 				}
-				// IMPORTANT: 'callback', if any is scheduled from unmanaged code
+
+				if (callback != null)
+					callback(this);
 			}
 
 			public void Complete (bool synch)

@@ -465,6 +465,11 @@ mono_arch_get_this_arg_from_call (mgreg_t *regs, guint8 *code)
 	return (gpointer)regs [ARMREG_R0];
 }
 
+void
+mono_arch_setup_thread (void)
+{
+}
+
 /*
  * Initialize the cpu to execute managed code.
  */

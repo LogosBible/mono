@@ -174,8 +174,6 @@ static void handle_cleanup (void)
 {
 	int i, j, k;
 	
-	_wapi_process_signal_self ();
-
 	/* Every shared handle we were using ought really to be closed
 	 * by now, but to make sure just blow them all away.  The
 	 * exiting finalizer thread in particular races us to the
@@ -505,7 +503,6 @@ static gpointer _wapi_handle_real_new (WapiHandleType type, gpointer handle_spec
 		ref = _wapi_handle_new_shared (type, handle_specific);
 		if (ref == 0) {
 			_wapi_handle_collect ();
-			_wapi_process_reap ();
 			ref = _wapi_handle_new_shared (type, handle_specific);
 			if (ref == 0) {
 				/* FIXME: grow the arrays */
@@ -1307,7 +1304,7 @@ gboolean _wapi_handle_ops_isowned (gpointer handle)
 	}
 }
 
-guint32 _wapi_handle_ops_special_wait (gpointer handle, guint32 timeout)
+guint32 _wapi_handle_ops_special_wait (gpointer handle, guint32 timeout, gboolean alertable)
 {
 	guint32 idx = GPOINTER_TO_UINT(handle);
 	WapiHandleType type;
@@ -1320,7 +1317,7 @@ guint32 _wapi_handle_ops_special_wait (gpointer handle, guint32 timeout)
 	
 	if (handle_ops[type] != NULL &&
 	    handle_ops[type]->special_wait != NULL) {
-		return(handle_ops[type]->special_wait (handle, timeout));
+		return(handle_ops[type]->special_wait (handle, timeout, alertable));
 	} else {
 		return(WAIT_FAILED);
 	}
