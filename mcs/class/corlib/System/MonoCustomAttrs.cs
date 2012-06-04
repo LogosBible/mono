@@ -256,7 +256,13 @@ namespace System
 			}
 
 			// copy attributes to array
-			a.CopyTo (array, 0);
+			if (array != null)
+			{
+				for (int index = 0; index < a.Count; index++)
+				{
+					array[index] = a[index];
+				}
+			}
 
 			return array;
 		}
