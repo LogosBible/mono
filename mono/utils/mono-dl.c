@@ -496,7 +496,7 @@ mono_dl_build_path (const char *directory, const char *name, void **iter)
 	}
 
 	prlen = strlen (SOPREFIX);
-	if (prlen && strncmp (name, SOPREFIX, prlen) != 0)
+	if (prlen && strncmp (name, SOPREFIX, prlen) != 0 && strchr(name, G_DIR_SEPARATOR) == NULL)
 		prefix = SOPREFIX;
 	else
 		prefix = "";
