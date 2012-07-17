@@ -429,7 +429,7 @@ namespace System.Xml.Serialization
 			}
 		}
 
-		static Encoding DefaultEncoding = Encoding.Default;
+		static Encoding DefaultEncoding = null;
 
 		public void Serialize (Stream stream, object o)
 		{
