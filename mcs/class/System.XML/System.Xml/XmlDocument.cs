@@ -1074,12 +1074,33 @@ namespace System.Xml
 			//
 			// This should preserve white space if PreserveWhiteSpace is true
 			//
-			bool autoXmlDecl = FirstChild != null && FirstChild.NodeType != XmlNodeType.XmlDeclaration;
-			if (autoXmlDecl)
-				w.WriteStartDocument ();
-			WriteContentTo (w);
-			if (autoXmlDecl)
-				w.WriteEndDocument ();
+			XmlNode childNode = FirstChild;
+			if (childNode == null)
+				return;
+ 
+			if (w.WriteState == WriteState.Start) {
+				if (childNode.NodeType != XmlNodeType.XmlDeclaration) {
+					w.WriteStartDocument ();
+				}
+				else {
+					string standalone = ((XmlDeclaration) childNode).Standalone;
+					if (standalone == String.Empty) {
+						w.WriteStartDocument ();
+					}
+					else if (standalone == "yes") {
+						w.WriteStartDocument (true);
+					}
+					else if (standalone == "no") {
+						w.WriteStartDocument (false);
+					}
+					childNode = childNode.NextSibling;
+				}
+ 
+				while (childNode != null) {
+					childNode.WriteTo (w);
+					childNode = childNode.NextSibling;
+				}
+			}
 			w.Flush ();
 		}
 
