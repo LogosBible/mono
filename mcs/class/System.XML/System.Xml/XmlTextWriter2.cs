@@ -1083,6 +1083,13 @@ namespace System.Xml
 		{
 			if (text == null || (text.Length == 0 && !v2))
 				return; // do nothing, including state transition.
+
+			if (text.Length == 0)
+			{
+				WriteRaw (text);
+				return;
+			}
+
 			ShiftStateContent ("Text", true);
 
 			WriteEscapedString (text, state == WriteState.Attribute);
