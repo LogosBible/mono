@@ -425,7 +425,7 @@ namespace System.Xml.Serialization
 #if MOONLIGHT
 		static Encoding DefaultEncoding = Encoding.UTF8;
 #else
-		static Encoding DefaultEncoding = Encoding.Default;
+		static Encoding DefaultEncoding = null;
 #endif
 
 		public void Serialize (Stream stream, object o)
