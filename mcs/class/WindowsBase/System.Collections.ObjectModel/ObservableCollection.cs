@@ -26,7 +26,7 @@
 //	Marek Safar (marek.safar@gmail.com)
 //
 
-#if NET_4_0
+#if NET_4_9
 
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;

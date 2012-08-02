@@ -24,7 +24,7 @@
 //	Brian O'Keefe (zer0keefie@gmail.com)
 //
 
-#if NET_4_0
+#if NET_4_9
 
 using System.Collections.ObjectModel;
 using System.Runtime.CompilerServices;
