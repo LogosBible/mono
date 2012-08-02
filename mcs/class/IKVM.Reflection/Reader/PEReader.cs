@@ -183,6 +183,9 @@ namespace IKVM.Reflection.Reader
 			}
 			LoaderFlags = br.ReadUInt32();
 			NumberOfRvaAndSizes = br.ReadUInt32();
+			if (NumberOfRvaAndSizes == 15)
+				NumberOfRvaAndSizes = 16;
+
 			DataDirectory = new IMAGE_DATA_DIRECTORY[NumberOfRvaAndSizes];
 			for (uint i = 0; i < NumberOfRvaAndSizes; i++)
 			{
