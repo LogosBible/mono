@@ -129,11 +129,19 @@ namespace IKVM.Reflection.Reader
 					case "#Strings":
 						stringHeap = ReadHeap(stream, sh);
 						break;
+					case "#Blop":
+						sh.Name = "#Blob";
+						blobHeap = ReadHeap(stream, sh);
+						break;
 					case "#Blob":
 						blobHeap = ReadHeap(stream, sh);
 						break;
 					case "#US":
 						userStringHeap = ReadHeap(stream, sh);
+						break;
+					case "#GUlD":
+						sh.Name = "#GUID";
+						guidHeap = ReadHeap(stream, sh);
 						break;
 					case "#GUID":
 						guidHeap = ReadHeap(stream, sh);
