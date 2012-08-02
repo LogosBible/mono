@@ -184,6 +184,12 @@ namespace System.Threading
 		}
 #endif
 
+		private void SafeCancel()
+		{
+			if (!disposed)
+				Cancel();
+		}
+
 		public static CancellationTokenSource CreateLinkedTokenSource (CancellationToken token1, CancellationToken token2)
 		{
 			return CreateLinkedTokenSource (new [] { token1, token2 });
@@ -198,7 +204,7 @@ namespace System.Threading
 				throw new ArgumentException ("Empty tokens array");
 
 			CancellationTokenSource src = new CancellationTokenSource ();
-			Action action = src.Cancel;
+			Action action = src.SafeCancel;
 
 			foreach (CancellationToken token in tokens) {
 				if (token.CanBeCanceled)
