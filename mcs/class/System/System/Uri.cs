@@ -1290,7 +1290,9 @@ namespace System {
 		//
 		private string ParseAsWindowsAbsoluteFilePath (string uriString)
 		{
-			if (uriString.Length > 2 && uriString [2] != '\\' && uriString [2] != '/')
+			if (uriString.Length == 2)
+				return "Invalid URI: The format of the URI could not be determined.";
+			else if (uriString.Length > 2 && uriString [2] != '\\' && uriString [2] != '/')
 				return "Relative file path is not allowed.";
 			scheme = UriSchemeFile;
 			host = String.Empty;
