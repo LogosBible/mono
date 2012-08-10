@@ -262,7 +262,6 @@ namespace System.IO.Compression {
 				break;
 			case -3: // Z_DATA_ERROR
 				throw new InvalidDataException("Corrupted data " + where);
-				break;
 			case -4: // Z_MEM_ERROR
 				error = "Not enough memory";
 				break;
