@@ -454,7 +454,7 @@ namespace System.Text.RegularExpressions {
 				throw new ArgumentNullException ("input");
 			if (startat < 0 || startat > input.Length)
 				throw new ArgumentOutOfRangeException ("startat");
-			return CreateMachine ().Scan (this, input, startat, input.Length);
+			return CreateMachine ().Scan (this, input, startat, input.Length, false);
 		}
 
 		public Match Match (string input, int beginning, int length)
@@ -465,7 +465,7 @@ namespace System.Text.RegularExpressions {
 				throw new ArgumentOutOfRangeException ("beginning");
 			if (length < 0 || length > input.Length - beginning)
 				throw new ArgumentOutOfRangeException ("length");
-			return CreateMachine ().Scan (this, input, beginning, beginning + length);
+			return CreateMachine ().Scan (this, input, beginning, beginning + length, true);
 		}
 
 		public MatchCollection Matches (string input)
