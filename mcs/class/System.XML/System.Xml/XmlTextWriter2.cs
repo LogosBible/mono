@@ -150,8 +150,8 @@ namespace System.Xml
 
 		static readonly Encoding unmarked_utf8encoding =
 			new UTF8Encoding (false, false);
-		static char [] escaped_text_chars;
-		static char [] escaped_attr_chars;
+		char [] escaped_text_chars;
+		char [] escaped_attr_chars;
 
 		// Internal classes
 
