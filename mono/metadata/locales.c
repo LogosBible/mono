@@ -56,6 +56,9 @@ static const CultureInfoEntry* culture_info_entry_from_lcid (int lcid);
 
 static const RegionInfoEntry* region_info_entry_from_lcid (int lcid);
 
+static gboolean
+construct_culture_from_specific_name (MonoCultureInfo *ci, gchar *name);
+
 static int
 culture_lcid_locator (const void *a, const void *b)
 {
@@ -264,6 +267,7 @@ static MonoBoolean
 construct_culture (MonoCultureInfo *this, const CultureInfoEntry *ci)
 {
 	MonoDomain *domain = mono_domain_get ();
+	MonoCultureInfo *culture;
 
 	this->lcid = ci->lcid;
 	MONO_OBJECT_SETREF (this, name, mono_string_new (domain, idx2string (ci->name)));
@@ -282,7 +286,21 @@ construct_culture (MonoCultureInfo *this, const CultureInfoEntry *ci)
 	this->number_index = ci->number_format_index;
 	this->calendar_type = ci->calendar_type;
 	this->text_info_data = &ci->text_info;
-	
+
+	// Special case for zh-chs, whose parent zh-hans has the same lcid, and zh-cht whose parent zh-hant has the same lcid
+	if (this->lcid == 0x0004 && this->lcid == this->parent_lcid) {
+		culture = (MonoCultureInfo *) mono_object_new(domain, mono_class_from_name (mono_get_corlib (), "System.Globalization", "CultureInfo"));
+		mono_runtime_object_init ((MonoObject *) culture);
+		if (construct_culture_from_specific_name (culture, "zh-hans"))
+			MONO_OBJECT_SETREF (this, parent_culture, culture);
+	}
+	else if (this->lcid == 0x7C04 && this->lcid == this->parent_lcid) {
+		culture = (MonoCultureInfo *) mono_object_new(domain, mono_class_from_name (mono_get_corlib (), "System.Globalization", "CultureInfo"));
+		mono_runtime_object_init ((MonoObject *) culture);
+		if (construct_culture_from_specific_name (culture, "zh-hant"))
+			MONO_OBJECT_SETREF (this, parent_culture, culture);
+	}
+
 	return TRUE;
 }
 

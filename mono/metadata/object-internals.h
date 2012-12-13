@@ -532,6 +532,7 @@ typedef struct {
 	MonoArray *native_calendar_names;
 	MonoCompareInfo *compareinfo;
 	const void* text_info_data;
+	MonoObject *parent_culture;
 } MonoCultureInfo;
 
 typedef struct {
