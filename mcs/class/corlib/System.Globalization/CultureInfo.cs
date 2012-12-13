@@ -83,13 +83,13 @@ namespace System.Globalization
 		[NonSerialized]
 		private unsafe readonly void *textinfo_data;
 
+		[NonSerialized]
+		CultureInfo parent_culture;
+
 		int m_dataItem;		// MS.NET serializes this.
 #pragma warning restore 169, 649
 
 		Calendar calendar;
-
-		[NonSerialized]
-		CultureInfo parent_culture;
 
 		// Deserialized instances will set this to false
 		[NonSerialized]
