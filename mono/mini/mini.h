@@ -2740,19 +2740,13 @@ void        mono_simd_intrinsics_init (void) MONO_INTERNAL;
 MonoInst*   mono_emit_native_types_intrinsics (MonoCompile *cfg, MonoMethod *cmethod, MonoMethodSignature *fsig, MonoInst **args) MONO_INTERNAL;
 MonoType*   mini_native_type_replace_type (MonoType *type) MONO_INTERNAL;
 
-#ifdef __linux__
 /* maybe enable also for other systems? */
 #define ENABLE_JIT_MAP 1
+void mono_enable_jit_map_file (const char *name);
 void mono_enable_jit_map (void) MONO_INTERNAL;
 void mono_emit_jit_map   (MonoJitInfo *jinfo) MONO_INTERNAL;
 void mono_emit_jit_tramp (void *start, int size, const char *desc) MONO_INTERNAL;
 gboolean mono_jit_map_is_enabled (void) MONO_INTERNAL;
-#else
-#define mono_enable_jit_map()
-#define mono_emit_jit_map(ji)
-#define mono_emit_jit_tramp(s,z,d)
-#define mono_jit_map_is_enabled() (0)
-#endif
 
 /*
  * Per-OS implementation functions.
