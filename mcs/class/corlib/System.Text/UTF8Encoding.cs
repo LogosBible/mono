@@ -852,7 +852,13 @@ fail_no_space:
 		if (charCount < 0) {
 			throw new ArgumentOutOfRangeException ("charCount", _("ArgRange_NonNegative"));
 		}
-		return charCount * 4;
+
+		int maxByteCount = charCount + 1;
+		if (EncoderFallback.MaxCharCount > 1) {
+			maxByteCount = maxByteCount * EncoderFallback.MaxCharCount;
+		}
+
+		return maxByteCount * 3;
 	}
 
 	// Get the maximum number of characters needed to decode a
@@ -862,7 +868,13 @@ fail_no_space:
 		if (byteCount < 0) {
 			throw new ArgumentOutOfRangeException ("byteCount", _("ArgRange_NonNegative"));
 		}
-		return byteCount;
+
+		int maxCharCount = byteCount + 1;
+		if (DecoderFallback.MaxCharCount > 1) {
+			maxCharCount = maxCharCount * DecoderFallback.MaxCharCount;
+		}
+
+		return maxCharCount;
 	}
 
 	// Get a UTF8-specific decoder that is attached to this instance.
