@@ -159,6 +159,13 @@ mono_class_from_typeref (MonoImage *image, guint32 type_token)
 	MonoClass *res;
 	MonoImage *module;
 
+	if (t->rows < ((type_token & 0xffffff) - 1))
+	{
+		MonoClass *injectedRef = mono_profiler_get_injected_typeref(image, type_token);
+		if (injectedRef != NULL)
+			return injectedRef;
+	}
+
 	if (!mono_verifier_verify_typeref_row (image, (type_token & 0xffffff) - 1, &error)) {
 		mono_trace_warning (MONO_TRACE_TYPE, "Failed to resolve typeref from %s due to '%s'", image->name, mono_error_get_message (&error));
 		return NULL;

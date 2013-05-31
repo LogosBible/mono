@@ -25,6 +25,7 @@
 #include "class.h"
 #include "marshal.h"
 #include "debug-helpers.h"
+#include "profiler-private.h"
 #include <mono/utils/mono-error-internals.h>
  
 /* Auxiliary structure used for caching inflated signatures */
@@ -897,6 +898,12 @@ mono_metadata_string_heap (MonoImage *meta, guint32 index)
 const char *
 mono_metadata_user_string (MonoImage *meta, guint32 index)
 {
+	if (index >= meta->heap_us.size) {
+		const char *result = mono_profiler_get_injected_user_string(meta, index);
+		if (result != NULL)
+			return result;
+	}
+
 	g_assert (index < meta->heap_us.size);
 	g_return_val_if_fail (index < meta->heap_us.size, "");
 	return meta->heap_us.data + index;
@@ -3451,8 +3458,8 @@ mono_metadata_parse_mh_full (MonoImage *m, MonoGenericContainer *container, cons
 	const unsigned char *code;
 	MonoExceptionClause* clauses = NULL;
 	int hsize, num_clauses = 0;
-	MonoTableInfo *t = &m->tables [MONO_TABLE_STANDALONESIG];
 	guint32 cols [MONO_STAND_ALONE_SIGNATURE_SIZE];
+	const char *locals_ptr = NULL;
 
 	g_return_val_if_fail (ptr != NULL, NULL);
 
@@ -3498,23 +3505,32 @@ mono_metadata_parse_mh_full (MonoImage *m, MonoGenericContainer *container, cons
 
 	if (local_var_sig_tok) {
 		int idx = (local_var_sig_tok & 0xffffff)-1;
-		if (idx >= t->rows || idx < 0)
+		if (idx < 0)
 			return NULL;
-		mono_metadata_decode_row (t, idx, cols, 1);
+		if (idx >= m->tables [MONO_TABLE_STANDALONESIG].rows)
+		{
+			locals_ptr = mono_profiler_get_injected_locals (m, local_var_sig_tok);
+			if (locals_ptr == NULL)
+				return NULL;
+		}
+		else
+		{
+			mono_metadata_decode_row (&m->tables [MONO_TABLE_STANDALONESIG], idx, cols, 1);
+			if (!mono_verifier_verify_standalone_signature (m, cols [MONO_STAND_ALONE_SIGNATURE], NULL))
+				return NULL;
 
-		if (!mono_verifier_verify_standalone_signature (m, cols [MONO_STAND_ALONE_SIGNATURE], NULL))
-			return NULL;
+			locals_ptr = mono_metadata_blob_heap (m, cols [MONO_STAND_ALONE_SIGNATURE]);
+		}
 	}
 	if (fat_flags & METHOD_HEADER_MORE_SECTS)
 		clauses = parse_section_data (m, &num_clauses, (const unsigned char*)ptr);
+
 	if (local_var_sig_tok) {
-		const char *locals_ptr;
 		int len=0, i, bsize;
 
-		locals_ptr = mono_metadata_blob_heap (m, cols [MONO_STAND_ALONE_SIGNATURE]);
 		bsize = mono_metadata_decode_blob_size (locals_ptr, &locals_ptr);
 		if (*locals_ptr != 0x07)
-			g_warning ("wrong signature for locals blob");
+			g_warning ("wrong signature for locals blob\n");
 		locals_ptr++;
 		len = mono_metadata_decode_value (locals_ptr, &locals_ptr);
 		mh = g_malloc0 (MONO_SIZEOF_METHOD_HEADER + len * sizeof (MonoType*) + num_clauses * sizeof (MonoExceptionClause));

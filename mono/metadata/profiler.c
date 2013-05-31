@@ -19,6 +19,7 @@
 #include "mono/metadata/class-internals.h"
 #include "mono/metadata/domain-internals.h"
 #include "mono/metadata/gc-internal.h"
+#include "mono/metadata/tokentype.h"
 #include "mono/io-layer/io-layer.h"
 #include "mono/utils/mono-dl.h"
 #include <string.h>
@@ -107,10 +108,36 @@ static ProfilerDesc *prof_list = NULL;
 #define mono_profiler_coverage_unlock() LeaveCriticalSection (&profiler_coverage_mutex)
 static CRITICAL_SECTION profiler_coverage_mutex;
 
+#define mono_profiler_method_replacement_lock() EnterCriticalSection (&profiler_method_replacement_mutex)
+#define mono_profiler_method_replacement_unlock() LeaveCriticalSection (&profiler_method_replacement_mutex)
+static CRITICAL_SECTION profiler_method_replacement_mutex;
+
+#define mono_profiler_injected_strings_lock() EnterCriticalSection (&profiler_injected_strings_mutex)
+#define mono_profiler_injected_strings_unlock() LeaveCriticalSection (&profiler_injected_strings_mutex)
+static CRITICAL_SECTION profiler_injected_strings_mutex;
+
+#define mono_profiler_injected_typerefs_lock() EnterCriticalSection (&profiler_injected_typerefs_mutex)
+#define mono_profiler_injected_typerefs_unlock() LeaveCriticalSection (&profiler_injected_typerefs_mutex)
+static CRITICAL_SECTION profiler_injected_typerefs_mutex;
+
+#define mono_profiler_injected_locals_lock() EnterCriticalSection (&profiler_injected_locals_mutex)
+#define mono_profiler_injected_locals_unlock() LeaveCriticalSection (&profiler_injected_locals_mutex)
+static CRITICAL_SECTION profiler_injected_locals_mutex;
+
+#define mono_profiler_injected_methodrefs_lock() EnterCriticalSection (&profiler_injected_methodrefs_mutex)
+#define mono_profiler_injected_methodrefs_unlock() LeaveCriticalSection (&profiler_injected_methodrefs_mutex)
+static CRITICAL_SECTION profiler_injected_methodrefs_mutex;
+
 /* this is directly accessible to other mono libs.
  * It is the ORed value of all the profiler's events.
  */
 MonoProfileFlags mono_profiler_events;
+
+static GHashTable *method_replacements = NULL;
+static GHashTable *injected_strings = NULL;
+static GHashTable *injected_typerefs = NULL;
+static GHashTable *injected_locals = NULL;
+static GHashTable *injected_methodrefs = NULL;
 
 /**
  * mono_profiler_install:
@@ -127,8 +154,20 @@ void
 mono_profiler_install (MonoProfiler *prof, MonoProfileFunc callback)
 {
 	ProfilerDesc *desc = g_new0 (ProfilerDesc, 1);
-	if (!prof_list)
+	if (!prof_list) {
 		InitializeCriticalSection (&profiler_coverage_mutex);
+		InitializeCriticalSection (&profiler_method_replacement_mutex);
+		InitializeCriticalSection (&profiler_injected_strings_mutex);
+		InitializeCriticalSection (&profiler_injected_typerefs_mutex);
+		InitializeCriticalSection (&profiler_injected_locals_mutex);
+		InitializeCriticalSection (&profiler_injected_methodrefs_mutex);
+		method_replacements = g_hash_table_new (NULL, NULL);
+		injected_strings = g_hash_table_new (NULL, NULL);
+		injected_typerefs = g_hash_table_new (NULL, NULL);
+		injected_locals = g_hash_table_new (NULL, NULL);
+		injected_methodrefs = g_hash_table_new (NULL, NULL);
+	}
+
 	desc->profiler = prof;
 	desc->shutdown_callback = callback;
 	desc->next = prof_list;
@@ -172,6 +211,296 @@ mono_profiler_get_events (void)
 	return mono_profiler_events;
 }
 
+/**
+ * mono_profiler_replace_method_body:
+ * @method: the method whose body should be replaced.
+ * @body: the new method body.
+ *
+ * Replaces the IL of a method at runtime. Should only be used before
+ * the method has been JITted.
+ */
+gboolean
+mono_profiler_replace_method_body (MonoMethod *method, char *body)
+{
+	gboolean success = FALSE;
+
+	if (!method_replacements)
+		return FALSE;
+
+	mono_profiler_method_replacement_lock ();
+	if (g_hash_table_lookup (method_replacements, method) == NULL) {
+		g_hash_table_insert_replace (method_replacements, method, body, FALSE);
+		success = TRUE;
+	}
+
+	mono_profiler_method_replacement_unlock ();
+	return success;
+}
+
+gboolean
+mono_profiler_inject_methodref (MonoImage *image, MonoMethod *method, uint32_t *token)
+{
+	GHashTable *image_methodrefs;
+	gboolean success = FALSE;
+
+	if (token == NULL  || !injected_methodrefs)
+		return FALSE;
+
+	mono_profiler_injected_methodrefs_lock ();
+
+	image_methodrefs = g_hash_table_lookup (injected_methodrefs, image);
+	if (image_methodrefs == NULL) {
+		image_methodrefs = g_hash_table_new (NULL, NULL);
+		g_hash_table_insert_replace (injected_methodrefs, image, image_methodrefs, FALSE);
+	}
+
+	*token = (MONO_TABLE_MEMBERREF << 24) | (mono_image_get_table_rows (image, MONO_TABLE_MEMBERREF) + 2);
+	while (g_hash_table_lookup (image_methodrefs, GINT_TO_POINTER(*token)))
+		(*token)++;
+
+	if ((*token & 0xff000000) == (MONO_TABLE_MEMBERREF << 24)) {
+		g_hash_table_insert_replace (image_methodrefs, GINT_TO_POINTER(*token), method, FALSE);
+		success = TRUE;
+	}
+
+	mono_profiler_injected_methodrefs_unlock ();
+	return success;
+}
+
+MonoMethod *
+mono_profiler_get_injected_methodref (MonoImage *image, uint32_t token)
+{
+	GHashTable *image_methodrefs;
+	MonoMethod *result = NULL;
+
+	if (!injected_methodrefs || (token & 0xff000000) != (MONO_TABLE_MEMBERREF << 24))
+		return NULL;
+
+	mono_profiler_injected_methodrefs_lock ();
+
+	image_methodrefs = (GHashTable *) g_hash_table_lookup (injected_methodrefs, image);
+	if (image_methodrefs != NULL)
+		result = g_hash_table_lookup (image_methodrefs, GINT_TO_POINTER(token));
+
+	mono_profiler_injected_methodrefs_unlock ();
+	return result;
+}
+
+gboolean
+mono_profiler_inject_user_string (MonoImage *image, const char *string, uint32_t *token)
+{
+	gboolean success = FALSE;
+	GHashTable *image_strings;
+
+	if (token == NULL || !injected_strings)
+		return FALSE;
+
+	mono_profiler_injected_strings_lock ();
+
+	image_strings = g_hash_table_lookup (injected_strings, image);
+	if (image_strings == NULL) {
+		image_strings = g_hash_table_new (NULL, NULL);
+		g_hash_table_insert_replace (injected_strings, image, image_strings, FALSE);
+	}
+
+	*token = image->heap_us.size + 1;
+	while (g_hash_table_lookup (image_strings, GINT_TO_POINTER (*token)))
+		(*token)++;
+
+	MonoString *converted = mono_string_new_wrapper(string);
+	int length = mono_string_length(converted) * 2;
+	char *value = g_malloc0(length + 5);
+	char *position = value;
+	if (length < 0x80)
+	{
+		position[0] = length & 0x7f;
+		position++;
+	}
+	else if (length < 0x4000)
+	{
+		position[0] = ((length >> 8) & 0x3f) | 0x80;
+		position[1] = length & 0xff;
+		position += 2;
+	}
+	else
+	{
+		position[0] = ((length >> 24) & 0x1f) | 0xc0;
+		position[1] = (length >> 16) & 0xff;
+		position[2] = (length >> 8) & 0xff;
+		position[3] = length & 0xff;
+		position += 4;
+	}
+
+	gunichar2 *stringChars = mono_string_chars(converted);
+	gboolean isUtf8 = TRUE;
+	int charCount = length / 2;
+	int index = 0;
+	for (index = 0; index < charCount; index++)
+	{
+		gunichar current = stringChars[index];
+		if (current > 0xFF || (current >= 0x01 && current <= 0x08) || (current <= 0x0e && current >= 0x1f) ||
+			current == 0x27 || current == 0x2d || current == 0x7f)
+		{
+			isUtf8 = FALSE;
+			break;
+		}
+	}
+
+	memcpy(position, mono_string_chars(converted), length);
+	if (!isUtf8)
+		position[length] = 1;
+
+	if ((*token & 0xff000000) == 0) {
+		g_hash_table_insert_replace (image_strings, GINT_TO_POINTER (*token), value, FALSE);
+		*token |= 0x70000000;
+		success = TRUE;
+	}
+
+	mono_profiler_injected_strings_unlock ();
+
+	return success;
+}
+
+const char *
+mono_profiler_get_injected_user_string (MonoImage *image, uint32_t token)
+{
+	GHashTable *image_strings;
+	char *result = NULL;
+
+	if (!injected_strings || (token & 0xff000000) != 0)
+		return NULL;
+
+	mono_profiler_injected_strings_lock ();
+
+	image_strings = (GHashTable *) g_hash_table_lookup (injected_strings, image);
+	if (image_strings != NULL)
+		result = g_hash_table_lookup (image_strings, GINT_TO_POINTER (token));
+
+	mono_profiler_injected_strings_unlock ();
+	return result;
+}
+
+gboolean
+mono_profiler_inject_typeref (MonoImage *image, MonoClass *value, uint32_t *token)
+{
+	GHashTable *image_typerefs;
+	gboolean success = FALSE;
+
+	if (token == NULL || !injected_typerefs)
+		return FALSE;
+
+	mono_profiler_injected_typerefs_lock ();
+
+	image_typerefs = g_hash_table_lookup (injected_typerefs, image);
+	if (image_typerefs == NULL) {
+		image_typerefs = g_hash_table_new (NULL, NULL);
+		g_hash_table_insert_replace (injected_typerefs, image, image_typerefs, FALSE);
+	}
+
+	*token = MONO_TOKEN_TYPE_REF | (mono_image_get_table_rows (image, MONO_TABLE_TYPEREF) + 2);
+	while (g_hash_table_lookup (image_typerefs, GINT_TO_POINTER (*token)))
+		(*token)++;
+
+	if ((*token & 0xff000000) == MONO_TOKEN_TYPE_REF) {
+		g_hash_table_insert_replace (image_typerefs, GINT_TO_POINTER (*token), value, FALSE);
+		success = TRUE;
+	}
+
+	mono_profiler_injected_typerefs_unlock ();
+
+	return success;
+}
+
+MonoClass *
+mono_profiler_get_injected_typeref (MonoImage *image, uint32_t token)
+{
+	GHashTable *image_typerefs;
+	MonoClass *result = NULL;
+
+	if (!injected_typerefs || (token & 0xff000000) != MONO_TOKEN_TYPE_REF)
+		return NULL;
+
+	mono_profiler_injected_typerefs_lock ();
+
+	image_typerefs = (GHashTable *) g_hash_table_lookup (injected_typerefs, image);
+	if (image_typerefs != NULL)
+		result = g_hash_table_lookup (image_typerefs, GINT_TO_POINTER (token));
+
+	mono_profiler_injected_typerefs_unlock ();
+
+	return result;
+}
+
+gboolean
+mono_profiler_inject_locals (MonoImage *image, const char *value, uint32_t *token)
+{
+	GHashTable *image_locals;
+	gboolean success = FALSE;
+
+	if (token == NULL || !injected_locals)
+		return FALSE;
+
+	mono_profiler_injected_locals_lock ();
+
+	image_locals = g_hash_table_lookup (injected_locals, image);
+	if (image_locals == NULL) {
+		image_locals = g_hash_table_new (NULL, NULL);
+		g_hash_table_insert_replace (injected_locals, image, image_locals, FALSE);
+	}
+
+	*token = MONO_TOKEN_SIGNATURE | (mono_image_get_table_rows (image, MONO_TABLE_STANDALONESIG) + 1);
+	while (g_hash_table_lookup (image_locals, GINT_TO_POINTER (*token)))
+		(*token)++;
+
+	if ((*token & 0xff000000) == MONO_TOKEN_SIGNATURE) {
+		g_hash_table_insert_replace (image_locals, GINT_TO_POINTER (*token), value, FALSE);
+		success = TRUE;
+	}
+
+	mono_profiler_injected_locals_unlock ();
+
+	return success;
+}
+
+char *
+mono_profiler_get_injected_locals (MonoImage *image, uint32_t token)
+{
+	GHashTable *image_locals;
+	char *result = NULL;
+
+	if (!injected_locals || (token & 0xff000000) != MONO_TOKEN_SIGNATURE)
+		return NULL;
+
+	mono_profiler_injected_locals_lock ();
+
+	image_locals = (GHashTable *) g_hash_table_lookup (injected_locals, image);
+	if (image_locals != NULL)
+		result = g_hash_table_lookup (image_locals, GINT_TO_POINTER (token));
+
+	mono_profiler_injected_locals_unlock ();
+	return result;
+}
+
+/**
+ * mono_profiler_get_method_replacment:
+ * @method: the method whose body should be retrieved.
+ *
+ * Gets the replacement IL body of a method, if one has been provided.
+ */
+const char *
+mono_profiler_get_method_replacement(MonoMethod *method)
+{
+	const char *result;
+
+	if (!method_replacements)
+		return NULL;
+
+	mono_profiler_method_replacement_lock ();
+	result = (const char *) g_hash_table_lookup (method_replacements, method);
+	mono_profiler_method_replacement_unlock ();
+
+	return result;
+}
 /**
  * mono_profiler_install_enter_leave:
  * @enter: the routine to be called on each method entry

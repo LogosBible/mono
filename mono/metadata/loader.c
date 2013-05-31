@@ -859,6 +859,12 @@ mono_method_get_signature_full (MonoMethod *method, MonoImage *image, guint32 to
 		sig = mono_reflection_lookup_signature (image, method, token);
 	} else {
 #endif
+		if ((idx - 1) >= image->tables [MONO_TABLE_MEMBERREF].rows) {
+			MonoMethod *referencedMethod = mono_profiler_get_injected_methodref (image, token);
+			if (referencedMethod != NULL)
+				return mono_method_signature(referencedMethod);
+		}
+
 		mono_metadata_decode_row (&image->tables [MONO_TABLE_MEMBERREF], idx-1, cols, MONO_MEMBERREF_SIZE);
 		sig_idx = cols [MONO_MEMBERREF_SIGNATURE];
 
@@ -949,6 +955,12 @@ method_from_memberref (MonoImage *image, guint32 idx, MonoGenericContext *typesp
 	const char *mname;
 	MonoMethodSignature *sig;
 	const char *ptr;
+
+	if ((idx - 1) >= image->tables [MONO_TABLE_MEMBERREF].rows) {
+		MonoMethod *referencedMethod = mono_profiler_get_injected_methodref(image, idx | (MONO_TABLE_MEMBERREF << 24));
+		if (referencedMethod != NULL)
+			return referencedMethod;
+	}
 
 	mono_metadata_decode_row (&tables [MONO_TABLE_MEMBERREF], idx-1, cols, 3);
 	nindex = cols [MONO_MEMBERREF_CLASS] >> MONO_MEMBERREF_PARENT_BITS;
@@ -1807,6 +1819,26 @@ mono_get_method (MonoImage *image, guint32 token, MonoClass *klass)
 	return mono_get_method_full (image, token, klass, NULL);
 }
 
+guint32 mono_image_inject_method_ref (MonoImage *image, MonoMethod *method)
+{
+	guint32 result = 0;
+	int tableRows = mono_image_get_table_rows (image, MONO_TABLE_MEMBERREF) + 1;
+
+	mono_image_lock (image);
+
+	if (!image->methodref_cache)
+		image->methodref_cache = g_hash_table_new (NULL, NULL);
+
+	do {
+		result = tableRows | (MONO_TABLE_MEMBERREF << 24);
+		tableRows++;
+	} while (g_hash_table_lookup (image->methodref_cache, GINT_TO_POINTER (result)));
+
+	g_hash_table_insert_replace (image->methodref_cache, GINT_TO_POINTER (result), method, FALSE);
+	mono_image_unlock (image);
+	return result;
+}
+
 MonoMethod *
 mono_get_method_full (MonoImage *image, guint32 token, MonoClass *klass,
 		      MonoGenericContext *context)
@@ -2601,21 +2633,51 @@ mono_method_get_header (MonoMethod *method)
 	 * We don't need locks here: the new header is allocated from malloc memory
 	 * and is not stored anywhere in the runtime, the user needs to free it.
 	 */
+	loc = mono_profiler_get_method_replacement(method);
+	img = method->klass->image;
+	if (!loc) {
+		g_assert (mono_metadata_token_table (method->token) == MONO_TABLE_METHOD);
+		idx = mono_metadata_token_index (method->token);
+		rva = mono_metadata_decode_row_col (&img->tables [MONO_TABLE_METHOD], idx - 1, MONO_METHOD_RVA);
+
+		if (!mono_verifier_verify_method_header (img, rva, NULL))
+			return NULL;
+
+		loc = mono_image_rva_map (img, rva);
+		if (!loc)
+			return NULL;
+	}
+
+	header = mono_metadata_parse_mh_full (img, mono_method_get_generic_container (method), loc);
+
+	return header;
+}
+
+const char *
+mono_method_get_il_body(MonoMethod *method)
+{
+	int idx;
+	guint32 rva;
+	MonoImage *img;
+	gpointer loc;
+
+	if ((method->flags & METHOD_ATTRIBUTE_ABSTRACT) || (method->iflags & METHOD_IMPL_ATTRIBUTE_RUNTIME) || (method->iflags & METHOD_IMPL_ATTRIBUTE_INTERNAL_CALL) || (method->flags & METHOD_ATTRIBUTE_PINVOKE_IMPL) ||
+	    (method->is_inflated) ||
+	    (method->wrapper_type != MONO_WRAPPER_NONE || method->sre_method))
+		return NULL;
+
+	if (mono_profiler_get_method_replacement (method) != NULL)
+		return NULL;
+
 	g_assert (mono_metadata_token_table (method->token) == MONO_TABLE_METHOD);
 	idx = mono_metadata_token_index (method->token);
-	img = method->klass->image;
+	img = method = method->klass->image;
 	rva = mono_metadata_decode_row_col (&img->tables [MONO_TABLE_METHOD], idx - 1, MONO_METHOD_RVA);
 
 	if (!mono_verifier_verify_method_header (img, rva, NULL))
 		return NULL;
 
-	loc = mono_image_rva_map (img, rva);
-	if (!loc)
-		return NULL;
-
-	header = mono_metadata_parse_mh_full (img, mono_method_get_generic_container (method), loc);
-
-	return header;
+	return mono_image_rva_map (img, rva);
 }
 
 guint32

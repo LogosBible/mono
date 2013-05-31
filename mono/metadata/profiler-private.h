@@ -33,6 +33,12 @@ void mono_profiler_method_free     (MonoMethod *method) MONO_INTERNAL;
 void mono_profiler_method_start_invoke (MonoMethod *method) MONO_INTERNAL;
 void mono_profiler_method_end_invoke   (MonoMethod *method) MONO_INTERNAL;
 
+const char *mono_profiler_get_method_replacement (MonoMethod *method) MONO_INTERNAL;
+MonoMethod *mono_profiler_get_injected_methodref (MonoImage *image, guint32 token) MONO_INTERNAL;
+const char *mono_profiler_get_injected_user_string (MonoImage *image, guint32 token) MONO_INTERNAL;
+MonoClass  *mono_profiler_get_injected_typeref (MonoImage *image, guint32 token) MONO_INTERNAL;
+char *mono_profiler_get_injected_locals (MonoImage *image, guint32 token) MONO_INTERNAL;
+
 void mono_profiler_code_transition (MonoMethod *method, int result) MONO_INTERNAL;
 void mono_profiler_allocation      (MonoObject *obj, MonoClass *klass) MONO_INTERNAL;
 void mono_profiler_monitor_event   (MonoObject *obj, MonoProfilerMonitorEvent event) MONO_INTERNAL;

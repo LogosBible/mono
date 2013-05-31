@@ -36,6 +36,9 @@ MonoMethodHeader*
 mono_method_get_header     (MonoMethod *method);
 
 const char*
+mono_method_get_il_body    (MonoMethod *method);
+
+const char*
 mono_method_get_name       (MonoMethod *method);
 
 MonoClass*

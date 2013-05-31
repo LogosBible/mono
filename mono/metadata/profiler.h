@@ -154,6 +154,12 @@ typedef void (*MonoProfilerCodeBufferNew) (MonoProfiler *prof, void* buffer, int
 void mono_profiler_install       (MonoProfiler *prof, MonoProfileFunc shutdown_callback);
 void mono_profiler_set_events    (MonoProfileFlags events);
 
+mono_bool mono_profiler_replace_method_body (MonoMethod *method, char *body);
+mono_bool mono_profiler_inject_methodref (MonoImage *image, MonoMethod *method, uint32_t *token);
+mono_bool mono_profiler_inject_user_string (MonoImage *image, const char *string, uint32_t *token);
+mono_bool mono_profiler_inject_typeref (MonoImage *image, MonoClass *typerefClass, uint32_t *token);
+mono_bool mono_profiler_inject_locals (MonoImage *image, const char *locals, uint32_t *token);
+
 MonoProfileFlags mono_profiler_get_events (void);
 
 void mono_profiler_install_appdomain   (MonoProfileAppDomainFunc start_load, MonoProfileAppDomainResult end_load,

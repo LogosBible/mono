@@ -574,6 +574,9 @@ mono_image_set_alloc0 (MonoImageSet *set, guint size) MONO_INTERNAL;
 char*
 mono_image_set_strdup (MonoImageSet *set, const char *s) MONO_INTERNAL;
 
+uint32_t
+mono_image_inject_method_ref (MonoImage *image, MonoMethod *method) MONO_INTERNAL;
+
 #define mono_image_set_new0(image,type,size) ((type *) mono_image_set_alloc0 (image, sizeof (type)* (size)))
 
 MonoType*
