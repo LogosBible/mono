@@ -139,7 +139,9 @@ AC_CHECK_FUNCS(strlcpy stpcpy strtok_r rewinddir vasprintf)
 #
 # iOS detection of strndup and getpwuid_r is faulty for some reason so let's simply avoid it
 #
-if test x$target_ios = xno; then
+if test x$target_osx = xyes; then
+AC_CHECK_FUNCS(getpwuid_r)
+elif test x$target_ios = xno; then
 AC_CHECK_FUNCS(strndup getpwuid_r)
 fi
 
