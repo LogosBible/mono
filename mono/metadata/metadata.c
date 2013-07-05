@@ -1067,7 +1067,7 @@ mono_metadata_decode_blob_size (const char *xptr, const char **rptr)
  * @rptr: the new position of the pointer
  *
  * This routine decompresses 32-bit values as specified in the "Blob and
- * Signature" section (22.2)
+ * Signature" section (23.2)
  *
  * Returns: the decoded value
  */
