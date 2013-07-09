@@ -162,7 +162,7 @@ _wapi_shm_enabled_internal (void)
  * writes to the shared area does not need to be written to disk, avoiding spinning up 
  * the disk every x secs on laptops.
  */
-#ifdef HAVE_SHM_OPEN
+#ifdef HAVE_SHM_OPEN_X
 #define USE_SHM 1
 #endif
 
