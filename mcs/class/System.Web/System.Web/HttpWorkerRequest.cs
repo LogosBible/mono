@@ -120,6 +120,14 @@ namespace System.Web
 				ResponseHeaderIndexer.Add (GetKnownResponseHeaderName(i), i);
 		}
 
+		// NewRelic HACK: the NewRelic agent expects this method to be here at breaks horribly when
+		// it isn't present.
+		readonly DateTime _startTime = DateTime.UtcNow;
+		private DateTime GetStartTime()
+		{
+			return _startTime;
+		}
+
 		bool started_internally;
 		internal bool StartedInternally {
 			get { return started_internally; }
