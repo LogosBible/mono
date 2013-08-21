@@ -361,7 +361,7 @@ static inline void _wapi_handle_share_release (struct _WapiFileShare *info)
 {
 	int thr_ret;
 
-//	g_assert (info->handle_refs > 0);
+	g_assert (info->handle_refs > 0);
 	
 	/* Prevent new entries racing with us */
 	thr_ret = _wapi_shm_sem_lock (_WAPI_SHARED_SEM_FILESHARE);
