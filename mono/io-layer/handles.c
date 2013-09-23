@@ -181,7 +181,7 @@ pid_t _wapi_getpid (void)
 
 static mono_mutex_t scan_mutex;
 
-static void handle_cleanup (void)
+void wapi_handle_cleanup (void)
 {
 	int i, j, k;
 	
@@ -291,7 +291,7 @@ wapi_cleanup (void)
 	_wapi_error_cleanup ();
 	_wapi_thread_cleanup ();
 	wapi_processes_cleanup ();
-	handle_cleanup ();
+	wapi_handle_cleanup ();
 }
 
 static void _wapi_handle_init_shared (struct _WapiHandleShared *handle,
