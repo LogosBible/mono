@@ -176,7 +176,7 @@ pid_t _wapi_getpid (void)
 
 static mono_mutex_t scan_mutex;
 
-static void handle_cleanup (void)
+void wapi_handle_cleanup (void)
 {
 	int i, j, k;
 	
@@ -294,7 +294,7 @@ wapi_init (void)
 	 * calls exit (eg if an X client loses the connection to its
 	 * server.)
 	 */
-	g_atexit (handle_cleanup);
+	g_atexit (wapi_handle_cleanup);
 }
 
 void
