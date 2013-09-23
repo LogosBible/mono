@@ -255,6 +255,10 @@ static inline int _wapi_handle_lock_handle (gpointer handle)
 		return(0);
 	}
 	
+	if (_wapi_handle_type (handle) == WAPI_HANDLE_UNUSED) {
+		return(0);
+	}
+
 	_wapi_handle_ref (handle);
 	
 	if (_WAPI_SHARED_HANDLE (_wapi_handle_type (handle))) {
@@ -276,7 +280,11 @@ static inline int _wapi_handle_trylock_handle (gpointer handle)
 	if (!_WAPI_PRIVATE_VALID_SLOT (idx)) {
 		return(0);
 	}
-	
+
+	if (_wapi_handle_type (handle) == WAPI_HANDLE_UNUSED) {
+		return(0);
+	}
+
 	_wapi_handle_ref (handle);
 	
 	if (_WAPI_SHARED_HANDLE (_wapi_handle_type (handle))) {
@@ -304,6 +312,10 @@ static inline int _wapi_handle_unlock_handle (gpointer handle)
 		return(0);
 	}
 	
+	if (_wapi_handle_type (handle) == WAPI_HANDLE_UNUSED) {
+		return(0);
+	}
+
 	if (_WAPI_SHARED_HANDLE (_wapi_handle_type (handle))) {
 		_wapi_handle_unref (handle);
 		return(0);
