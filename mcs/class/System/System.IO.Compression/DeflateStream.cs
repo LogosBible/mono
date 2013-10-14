@@ -460,8 +460,7 @@ namespace System.IO.Compression
 				error = "Internal error";
 				break;
 			case -3: // Z_DATA_ERROR
-				error = "Corrupted data";
-				break;
+				throw new InvalidDataException("Corrupted data " + where);
 			case -4: // Z_MEM_ERROR
 				error = "Not enough memory";
 				break;
