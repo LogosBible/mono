@@ -446,7 +446,7 @@ _wapi_shm_attach (_wapi_shm_t type)
 		return NULL;
 	}
 
-	if (!_wapi_shm_enabled ()) {
+	if (!_wapi_shm_enabled () || type == WAPI_SHM_FILESHARE) {
 		wapi_storage [type] = g_malloc0 (size);
 		return wapi_storage [type];
 	}
@@ -494,7 +494,7 @@ _wapi_shm_attach (_wapi_shm_t type)
 void
 _wapi_shm_detach (_wapi_shm_t type)
 {
-	if (!_wapi_shm_enabled ())
+	if (!_wapi_shm_enabled () || type == WAPI_SHM_FILESHARE)
 		g_free (wapi_storage [type]);
 }
 
@@ -659,7 +659,7 @@ again:
 	
 	_wapi_shm_sem_unlock (_WAPI_SHARED_SEM_PROCESS_COUNT_LOCK);
 
-	if (_wapi_shm_disabled)
+	if (!_wapi_shm_enabled ())
 		g_free (tmp_shared);
 	else
 		munmap (tmp_shared, sizeof(struct _WapiHandleSharedLayout));
@@ -851,14 +851,14 @@ _wapi_shm_semaphores_init (void)
 void
 _wapi_shm_semaphores_remove (void)
 {
-	if (!_wapi_shm_disabled) 
+	if (_wapi_shm_enabled ()) 
 		shm_semaphores_remove ();
 }
 
 int
 _wapi_shm_sem_lock (int sem)
 {
-	if (_wapi_shm_disabled) 
+	if (!_wapi_shm_enabled ()) 
 		return noshm_sem_lock (sem);
 	else
 		return shm_sem_lock (sem);
@@ -867,7 +867,7 @@ _wapi_shm_sem_lock (int sem)
 int
 _wapi_shm_sem_trylock (int sem)
 {
-	if (_wapi_shm_disabled) 
+	if (!_wapi_shm_enabled ()) 
 		return noshm_sem_trylock (sem);
 	else 
 		return shm_sem_trylock (sem);
@@ -876,7 +876,7 @@ _wapi_shm_sem_trylock (int sem)
 int
 _wapi_shm_sem_unlock (int sem)
 {
-	if (_wapi_shm_disabled) 
+	if (!_wapi_shm_enabled ()) 
 		return noshm_sem_unlock (sem);
 	else 
 		return shm_sem_unlock (sem);
