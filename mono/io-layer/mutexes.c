@@ -181,7 +181,7 @@ static gboolean namedmutex_own (gpointer handle)
 	ok = _wapi_lookup_handle (handle, WAPI_HANDLE_NAMEDMUTEX,
 				  (gpointer *)&namedmutex_handle);
 	if (ok == FALSE) {
-		g_warning ("%s: error looking up named mutex handle %p",
+		DEBUG ("%s: error looking up named mutex handle %p",
 			   __func__, handle);
 		return(FALSE);
 	}
@@ -209,7 +209,7 @@ static gboolean namedmutex_is_owned (gpointer handle)
 	ok = _wapi_lookup_handle (handle, WAPI_HANDLE_NAMEDMUTEX,
 				  (gpointer *)&namedmutex_handle);
 	if (ok == FALSE) {
-		g_warning ("%s: error looking up mutex handle %p", __func__,
+		DEBUG ("%s: error looking up mutex handle %p", __func__,
 			   handle);
 		return(FALSE);
 	}
@@ -245,7 +245,7 @@ static void namedmutex_prewait (gpointer handle)
 	ok = _wapi_lookup_handle (handle, WAPI_HANDLE_NAMEDMUTEX,
 				  (gpointer *)&namedmutex_handle);
 	if (ok == FALSE) {
-		g_warning ("%s: error looking up named mutex handle %p",
+		DEBUG ("%s: error looking up named mutex handle %p",
 			   __func__, handle);
 		return;
 	}
@@ -331,7 +331,7 @@ static void namedmutex_abandon (gpointer handle, pid_t pid, pthread_t tid)
 	ok = _wapi_lookup_handle (handle, WAPI_HANDLE_NAMEDMUTEX,
 				  (gpointer *)&mutex_handle);
 	if (ok == FALSE) {
-		g_warning ("%s: error looking up named mutex handle %p",
+		DEBUG ("%s: error looking up named mutex handle %p",
 			   __func__, handle);
 		return;
 	}
@@ -607,7 +607,7 @@ static gboolean namedmutex_release (gpointer handle)
 	ok=_wapi_lookup_handle (handle, WAPI_HANDLE_NAMEDMUTEX,
 				(gpointer *)&mutex_handle);
 	if(ok==FALSE) {
-		g_warning ("%s: error looking up named mutex handle %p",
+		DEBUG ("%s: error looking up named mutex handle %p",
 			   __func__, handle);
 		return(FALSE);
 	}
