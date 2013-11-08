@@ -3852,6 +3852,9 @@ thread_startup (MonoProfiler *prof, uintptr_t tid)
 			mono_g_hash_table_remove (tid_to_thread, GUINT_TO_POINTER (tid));
 			mono_g_hash_table_remove (tid_to_thread_obj, GUINT_TO_POINTER (tid));
 			mono_loader_unlock ();
+
+			/* FIXME: Should the current value be freed? (thread_end seems to indicate that freeing the current value might not be safe) */
+			mono_native_tls_set_value (debugger_tls_id, NULL);
 		}
 	}
 
