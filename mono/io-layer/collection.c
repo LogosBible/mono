@@ -86,6 +86,12 @@ void _wapi_handle_collect (void)
 	if (!_wapi_shm_enabled ())
 		return;
 	
+	// Make sure refs are updated before running a collection
+	// to avoid a race condition where _wapi_handle_collect could run
+	// before the collection_thread after a long sleep and wrongly
+	// free shared data that are still in use.
+	_wapi_handle_update_refs ();
+	
 	DEBUG ("%s: (%d) Starting a collection", __func__, _wapi_getpid ());
 
 	/* Become the collection master */
