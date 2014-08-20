@@ -214,8 +214,17 @@ namespace System {
 					break;
 				}
 
-				if (success && isAbsoluteUri && (path.Length > 0))
-					path = EscapeString (path);
+				if (success && isAbsoluteUri) {
+					// non-ascii characters are not escaped for the host name
+					host = EscapeString (host, EscapeCommonHex, false);
+					if (host.Length > 1 && host [0] != '[' && host [host.Length - 1] != ']') {
+						// host name present (but not an IPv6 address)
+						host = host.ToLower (CultureInfo.InvariantCulture);
+					}
+
+					if (path.Length > 0)
+						path = EscapeString (path);
+				}
 			}
 		}
 
@@ -1213,15 +1222,15 @@ namespace System {
 		{
 			Parse (kind, source);
 
-			if (userEscaped)
-				return;
-
 			// non-ascii characters are not escaped for the host name
 			host = EscapeString (host, EscapeCommonHex, false);
 			if (host.Length > 1 && host [0] != '[' && host [host.Length - 1] != ']') {
 				// host name present (but not an IPv6 address)
 				host = host.ToLower (CultureInfo.InvariantCulture);
 			}
+
+			if (userEscaped)
+				return;
 
 			if (isAbsoluteUri && (path.Length > 0))
 				path = EscapeString (path);
