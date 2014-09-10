@@ -643,11 +643,16 @@ namespace System.Net
 			WebConnection cnc = (WebConnection) state;
 			Stream ns = cnc.nstream;
 
-			try {
-				int size = cnc.buffer.Length - cnc.position;
-				ns.BeginRead (cnc.buffer, cnc.position, size, readDoneDelegate, cnc);
-			} catch (Exception e) {
-				cnc.HandleError (WebExceptionStatus.ReceiveFailure, e, "InitRead");
+			if (ns != null) {
+				try {
+					int size = cnc.buffer.Length - cnc.position;
+					ns.BeginRead (cnc.buffer, cnc.position, size, readDoneDelegate, cnc);
+				} catch (Exception e) {
+					cnc.HandleError (WebExceptionStatus.ReceiveFailure, e, "InitRead");
+				}
+			}
+			else {
+				cnc.HandleError (WebExceptionStatus.ReceiveFailure, new ArgumentNullException("stream"), "InitRead");
 			}
 		}
 		
