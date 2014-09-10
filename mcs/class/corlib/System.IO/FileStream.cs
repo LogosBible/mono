@@ -79,7 +79,7 @@ namespace System.IO
 		{
 			this.handle = MonoIO.InvalidHandle;
 			if (handle == this.handle)
-				throw new ArgumentException ("handle", Locale.GetText ("Invalid."));
+				throw new ArgumentException (Locale.GetText ("Invalid."), "handle");
 
 			if (access < FileAccess.Read || access > FileAccess.ReadWrite)
 				throw new ArgumentOutOfRangeException ("access");
@@ -759,7 +759,7 @@ namespace System.IO
 				break;
 
 			default:
-				throw new ArgumentException ("origin", "Invalid SeekOrigin");
+				throw new ArgumentException ("Invalid SeekOrigin", "origin");
 			}
 
 			if (pos < 0) {
