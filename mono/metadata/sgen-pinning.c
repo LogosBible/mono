@@ -156,7 +156,7 @@ sgen_optimize_pin_queue (int start_slot)
 	end = pin_queue + next_pin_slot;
 	while (cur < end) {
 		*start = *cur++;
-		while (*start == *cur && cur < end)
+		while (cur < end && *start == *cur)
 			cur++;
 		start++;
 	};
