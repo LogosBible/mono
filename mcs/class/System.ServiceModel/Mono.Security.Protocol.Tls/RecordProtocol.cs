@@ -311,7 +311,7 @@ namespace Mono.Security.Protocol.Tls
 
 		public IAsyncResult BeginReceiveRecord(Stream record, AsyncCallback callback, object state)
 		{
-			if (this.context.ReceivedConnectionEnd)
+			if (this.context.ReceivedConnectionEnd || record == null)
 			{
 				throw new TlsException(
 					AlertDescription.InternalError,
