@@ -142,7 +142,7 @@ typedef guint64 mword;
  * of which (DESC_TYPE_RUN_LENGTH, DESC_TYPE_SMALL_BITMAP) encode the
  * object size.
  */
-#define SGEN_MAX_SMALL_OBJ_SIZE 8000
+#define SGEN_MAX_SMALL_OBJ_SIZE 64000
 
 /*
  * This is the maximum ammount of memory we're willing to waste in order to speed up allocation.
