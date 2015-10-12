@@ -156,6 +156,12 @@ namespace System {
 				return false;
 			}
 
+			if (part.Length == 2)
+			{
+				state.error = "Invalid URI: The format of the URI could not be determined.";
+				return false;
+			}
+
 			if (part.Length > 2 && part [2] != '\\' && part [2] != '/') {
 				state.error = "Relative file path is not allowed.";
 				return false;
