@@ -117,7 +117,7 @@ main (void)
 int
 main (int argc, char* argv[])
 {
-	mono_build_date = build_date;
+//	mono_build_date = build_date;
 	
 	return mono_main_with_options (argc, argv);
 }
