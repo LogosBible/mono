@@ -40,8 +40,7 @@ namespace System.Configuration
 
 		public override void Add (string name, string val)
 		{
-			Remove (name);
-			base.Add (name, val);
+			Set (name, val);
 		}
 
 			/*
