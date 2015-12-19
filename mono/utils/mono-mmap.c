@@ -62,6 +62,137 @@ malloc_shared_area (int pid)
 	return sarea;
 }
 
+#ifndef __APPLE__
+
+static void *mono_mmap_internal (void *addr, size_t len, int prot, int flags, int fd, off_t offset)
+{
+	return mmap(addr, len, prot, flags, fd, offset);
+}
+
+static int mono_unmap_internal (void *addr, size_t len)
+{
+	return munmap(addr, len);
+}
+
+#else
+
+#include <dlfcn.h>
+#include <mach-o/dyld.h>
+#include <mach-o/loader.h>
+#include <mach-o/nlist.h>
+#include <pthread.h>
+#include "mono-mutex.h"
+
+#if defined(__x86_64__)
+typedef struct mach_header_64 mach_header_type ;
+typedef struct nlist_64 nlist_type;
+typedef uint64_t offset_type;
+#elif (defined(i386) || defined(__i386__))
+typedef struct mach_header mach_header_type;
+typedef struct nlist nlist_type;
+typedef uint32_t offset_type;
+#endif
+
+static mono_once_t mono_mmap_once=MONO_ONCE_INIT;
+static void (*OAExcludeMachThreadID)(int, int) = NULL;
+
+static offset_type offset_for_symbol(struct symtab_command *symtab, uint8_t *data, char *symbol_name)
+{
+	nlist_type *nlist = (nlist_type *)(data + symtab->symoff);
+	char *strtab = (char *) (data + symtab->stroff);
+
+	for (int i = 0; i < symtab->nsyms; ++i, nlist++)
+	{
+		const char *name = nlist->n_un.n_strx ? strtab + nlist->n_un.n_strx : "(null)";
+		if (strcmp(symbol_name, name) == 0)
+		{
+			offset_type offset = nlist->n_value;
+			return offset;
+		}
+	}
+
+	return 0;
+}
+
+static void mono_mmap_dylib_loaded(const mach_header_type *header, intptr_t slide)
+{
+	Dl_info image_info;
+	int result = dladdr(header, &image_info);
+	if (result == 0)
+		return;
+
+	const char *image_name = image_info.dli_fname;
+	if (strstr(image_name, "liboainject.dylib") == NULL)
+		return;
+
+	struct load_command *cmd = (struct load_command*)((char *) header + sizeof(mach_header_type));
+
+	for (int commandIndex = 0; commandIndex < header->ncmds; commandIndex++)
+	{
+		if (cmd->cmd == LC_SYMTAB)
+		{
+			offset_type offset = offset_for_symbol((struct symtab_command *) cmd, (uint8_t *) header, "___OAExcludeMachThreadID");
+			if (offset != 0)
+			{
+				fprintf(stderr, "found ___OAExcludeMachThreadID at %p\n", slide + offset);
+				OAExcludeMachThreadID = (void (*)(pthread_t, int)) (slide + offset);
+			}
+
+			return;
+		}
+
+		cmd = (struct load_command *) ((char *) cmd + cmd->cmdsize);
+	}
+}
+
+static void mono_mmap_dylib_unloaded(const mach_header_type *header, intptr_t slide)
+{
+	Dl_info image_info;
+	int result = dladdr(header, &image_info);
+	if (result == 0)
+		return;
+
+	const char *image_name = image_info.dli_fname;
+	if (strstr(image_name, "liboainject.dylib") == NULL)
+		return;
+
+	OAExcludeMachThreadID = NULL;
+}
+
+static void mono_mmap_init (void)
+{
+	_dyld_register_func_for_add_image(&mono_mmap_dylib_loaded);
+	_dyld_register_func_for_remove_image(&mono_mmap_dylib_unloaded);
+}
+
+static void *mono_mmap_internal (void *addr, size_t len, int prot, int flags, int fd, off_t offset)
+{
+	mono_once (&mono_mmap_once, mono_mmap_init);
+
+	if (OAExcludeMachThreadID == NULL)
+		return mmap(addr, len, prot, flags, fd, offset);
+	
+	OAExcludeMachThreadID(pthread_self(), 1);
+	void *ptr = mmap(addr, len, prot, flags, fd, offset);
+	OAExcludeMachThreadID(pthread_self(), 0);
+	return ptr;
+}
+
+static int mono_unmap_internal (void *addr, size_t len)
+{
+	mono_once (&mono_mmap_once, mono_mmap_init);
+
+	if (OAExcludeMachThreadID == NULL)
+		return munmap(addr, len);
+	
+	OAExcludeMachThreadID(pthread_self(), 1);
+	int _result = munmap(addr, len);
+	OAExcludeMachThreadID(pthread_self(), 0);
+	return _result;
+}
+
+#endif
+
 static char*
 aligned_address (char *mem, size_t size, size_t alignment)
 {
@@ -307,11 +438,11 @@ mono_valloc (void *addr, size_t length, int flags)
 	mflags |= MAP_ANONYMOUS;
 	mflags |= MAP_PRIVATE;
 
-	ptr = mmap (addr, length, prot, mflags, -1, 0);
+	ptr = mono_mmap_internal (addr, length, prot, mflags, -1, 0);
 	if (ptr == (void*)-1) {
 		int fd = open ("/dev/zero", O_RDONLY);
 		if (fd != -1) {
-			ptr = mmap (addr, length, prot, mflags, fd, 0);
+			ptr = mono_mmap_internal (addr, length, prot, mflags, fd, 0);
 			close (fd);
 		}
 		if (ptr == (void*)-1)
@@ -332,7 +463,7 @@ mono_valloc (void *addr, size_t length, int flags)
 int
 mono_vfree (void *addr, size_t length)
 {
-	return munmap (addr, length);
+	return mono_unmap_internal (addr, length);
 }
 
 /**
@@ -367,7 +498,7 @@ mono_file_map (size_t length, int flags, int fd, guint64 offset, void **ret_hand
 	if (flags & MONO_MMAP_32BIT)
 		mflags |= MAP_32BIT;
 
-	ptr = mmap (0, length, prot, mflags, fd, offset);
+	ptr = mono_mmap_internal (0, length, prot, mflags, fd, offset);
 	if (ptr == (void*)-1)
 		return NULL;
 	*ret_handle = (void*)length;
@@ -387,7 +518,7 @@ mono_file_map (size_t length, int flags, int fd, guint64 offset, void **ret_hand
 int
 mono_file_unmap (void *addr, void *handle)
 {
-	return munmap (addr, (size_t)handle);
+	return mono_unmap_internal (addr, (size_t)handle);
 }
 
 /**
@@ -593,7 +724,7 @@ mono_shared_area (void)
 		shm_unlink (buf);
 		close (fd);
 	}
-	res = mmap (NULL, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+	res = mono_mmap_internal (NULL, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
 	if (res == MAP_FAILED) {
 		shm_unlink (buf);
 		close (fd);
@@ -645,7 +776,7 @@ mono_shared_area_for_pid (void *pid)
 	fd = shm_open (buf, O_RDONLY, S_IRUSR|S_IRGRP);
 	if (fd == -1)
 		return NULL;
-	res = mmap (NULL, size, PROT_READ, MAP_SHARED, fd, 0);
+	res = mono_mmap_internal (NULL, size, PROT_READ, MAP_SHARED, fd, 0);
 	if (res == MAP_FAILED) {
 		close (fd);
 		return NULL;
@@ -660,7 +791,7 @@ void
 mono_shared_area_unload  (void *area)
 {
 	/* FIXME: currently we load only a page */
-	munmap (area, mono_pagesize ());
+	mono_unmap_internal (area, mono_pagesize ());
 }
 
 int
