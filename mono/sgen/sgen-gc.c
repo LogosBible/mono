@@ -3386,6 +3386,8 @@ sgen_stop_world (int generation)
 
 	sgen_client_stop_world (generation);
 
+	sgen_os_world_stopped ();
+
 	world_is_stopped = TRUE;
 
 	if (binary_protocol_is_heavy_enabled ())
@@ -3404,6 +3406,8 @@ sgen_restart_world (int generation, GGTimingInfo *timing)
 	if (binary_protocol_is_heavy_enabled ())
 		count_cards (&major_total, &major_marked, &los_total, &los_marked);
 	binary_protocol_world_restarting (generation, sgen_timestamp (), major_total, major_marked, los_total, los_marked);
+
+	sgen_os_world_restarting ();
 
 	sgen_client_restart_world (generation, timing);
 
