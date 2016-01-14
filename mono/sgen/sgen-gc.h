@@ -288,6 +288,8 @@ enum {
 void sgen_gc_init (void);
 
 void sgen_os_init (void);
+void sgen_os_world_stopped (void);
+void sgen_os_world_restarting (void);
 
 void sgen_update_heap_boundaries (mword low, mword high);
 

@@ -259,6 +259,16 @@ sgen_os_init (void)
 	
 }
 
+void
+sgen_os_world_stopped (void)
+{
+}
+
+void
+sgen_os_world_restarting (void)
+{
+}
+
 int
 mono_gc_get_suspend_signal (void)
 {
