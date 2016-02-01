@@ -466,9 +466,10 @@ gboolean  mono_debug_count                  (void);
 #define XDEBUG_ENABLED 1
 #endif
 
-#ifdef __linux__
+#if 1
 /* maybe enable also for other systems? */
 #define ENABLE_JIT_MAP 1
+MONO_API void mono_enable_jit_map_file (const char *name);
 void mono_enable_jit_map (void);
 void mono_emit_jit_map   (MonoJitInfo *jinfo);
 void mono_emit_jit_tramp (void *start, int size, const char *desc);
