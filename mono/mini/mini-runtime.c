@@ -1715,14 +1715,23 @@ mono_get_jit_info_from_method (MonoDomain *domain, MonoMethod *method)
 static FILE* perf_map_file;
 
 void
-mono_enable_jit_map (void)
+mono_enable_jit_map_file (const char *name)
 {
 	if (!perf_map_file) {
-		char name [64];
-		g_snprintf (name, sizeof (name), "/tmp/perf-%d.map", getpid ());
+		char defaultName [64];
+		g_snprintf (defaultName, sizeof (defaultName), "/tmp/perf-%d.map", getpid ());
+		if (name == NULL)
+			name = defaultName;
+
 		unlink (name);
 		perf_map_file = fopen (name, "w");
 	}
+}
+
+void
+mono_enable_jit_map (void)
+{
+	mono_enable_jit_map_file (NULL);
 }
 
 void
