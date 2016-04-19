@@ -1427,6 +1427,7 @@ static int next_generic_inst_id = 0;
 static MonoImageSet *mscorlib_image_set;
 /* Protected by image_sets_mutex */
 static GPtrArray *image_sets;
+static GHashTable *hashed_image_sets;
 static mono_mutex_t image_sets_mutex;
 
 static guint mono_generic_class_hash (gconstpointer data);
@@ -1525,6 +1526,42 @@ mono_generic_class_equal (gconstpointer ka, gconstpointer kb)
 	return _mono_metadata_generic_class_equal (a, b, FALSE);
 }
 
+static guint
+mono_image_set_hash (gconstpointer data)
+{
+	const MonoImageSet *gset = (const MonoImageSet *) data;
+	guint hash = gset->nimages;
+
+	for (int i = 0; i < gset->nimages; i++)
+		hash += GPOINTER_TO_UINT (gset->images[i]);
+
+	return hash;
+}
+
+static gboolean
+mono_image_set_equal (gconstpointer ka, gconstpointer kb)
+{
+	const MonoImageSet *a = (const MonoImageSet *) ka;
+	const MonoImageSet *b = (const MonoImageSet *) kb;
+
+	int nimages = a->nimages;
+	if (nimages != b->nimages)
+		return FALSE;
+
+	int i, j;
+	for (i = 0; i < nimages; i++) {
+		for (j = 0; j < nimages; j++) {
+			if (a->images [j] == b->images [i])
+				break;
+		}
+
+		if (j == nimages)
+			return FALSE;
+	}
+
+	return i == nimages;
+}
+
 /**
  * mono_metadata_init:
  *
@@ -1557,6 +1594,8 @@ mono_metadata_cleanup (void)
 	type_cache = NULL;
 	g_ptr_array_free (image_sets, TRUE);
 	image_sets = NULL;
+	g_hash_table_destroy (hashed_image_sets);
+	hashed_image_sets = NULL;
 	mono_mutex_destroy (&image_sets_mutex);
 }
 
@@ -2269,7 +2308,7 @@ get_image_set (MonoImage **images, int nimages)
 {
 	int i, j, k;
 	MonoImageSet *set;
-	GSList *l;
+	MonoImageSet helper;
 
 	/* Common case */
 	if (nimages == 1 && images [0] == mono_defaults.corlib && mscorlib_image_set)
@@ -2283,32 +2322,20 @@ get_image_set (MonoImage **images, int nimages)
 
 	if (!image_sets)
 		image_sets = g_ptr_array_new ();
+	if (!hashed_image_sets)
+		hashed_image_sets = g_hash_table_new_full (mono_image_set_hash, mono_image_set_equal, NULL, NULL);
 
+	MonoImage *image;
 	if (images [0] == mono_defaults.corlib && nimages > 1)
-		l = images [1]->image_sets;
+		image = images [1];
 	else
-		l = images [0]->image_sets;
+		image = images [0];
 
-	set = NULL;
-	for (; l; l = l->next) {
-		set = l->data;
+	helper.nimages = nimages;
+	helper.images = images;
+	set = g_hash_table_lookup (hashed_image_sets, &helper);
 
-		if (set->nimages == nimages) {
-			for (j = 0; j < nimages; ++j) {
-				for (k = 0; k < nimages; ++k)
-					if (set->images [k] == images [j])
-						break;
-				if (k == nimages)
-					/* Not found */
-					break;
-			}
-			if (j == nimages)
-				/* Found */
-				break;
-		}
-	}
-
-	if (!l) {
+	if (set == NULL) {
 		/* Not found */
 		set = g_new0 (MonoImageSet, 1);
 		set->nimages = nimages;
@@ -2325,6 +2352,7 @@ get_image_set (MonoImage **images, int nimages)
 			set->images [i]->image_sets = g_slist_prepend (set->images [i]->image_sets, set);
 
 		g_ptr_array_add (image_sets, set);
+		g_hash_table_insert (hashed_image_sets, set, set);
 	}
 
 	if (nimages == 1 && images [0] == mono_defaults.corlib) {
@@ -2353,6 +2381,7 @@ delete_image_set (MonoImageSet *set)
 		set->images [i]->image_sets = g_slist_remove (set->images [i]->image_sets, set);
 
 	g_ptr_array_remove (image_sets, set);
+	g_hash_table_remove (hashed_image_sets, set);
 
 	image_sets_unlock ();
 
