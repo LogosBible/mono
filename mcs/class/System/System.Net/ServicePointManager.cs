@@ -139,6 +139,7 @@ namespace System.Net
 
 		static bool expectContinue = true;
 		static bool useNagle;
+		static int dnsRefreshTimeout = 120000;
 		static RemoteCertificateValidationCallback server_cert_cb;
 		static bool tcp_keepalive;
 		static int tcp_keepalive_time;
@@ -218,14 +219,17 @@ namespace System.Net
 			return new NotImplementedException ();
 		}
 		
-		[MonoTODO]
 		public static int DnsRefreshTimeout
 		{
 			get {
-				throw GetMustImplement ();
+				return dnsRefreshTimeout;
 			}
 			set {
-				throw GetMustImplement ();
+				if (value < -1) {
+					dnsRefreshTimeout = -1;
+				} else {
+					dnsRefreshTimeout = value;
+				}
 			}
 		}
 		
