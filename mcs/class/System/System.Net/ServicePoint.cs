@@ -47,6 +47,7 @@ namespace System.Net
 		int maxIdleTime;
 		int currentConnections;
 		DateTime idleSince;
+		DateTime lastDnsResolveTime;
 		Version protocolVersion;
 		X509Certificate certificate;
 		X509Certificate clientCertificate;
@@ -339,11 +340,18 @@ namespace System.Net
 			CheckAvailableForRecycling (out dummy);
 		}
 
+		private bool HasDnsTimedOut {
+			get {
+                int dnsRefreshTimeout = ServicePointManager.DnsRefreshTimeout;
+                return dnsRefreshTimeout != Timeout.Infinite && (lastDnsResolveTime + new TimeSpan(0, 0, 0, 0, dnsRefreshTimeout)) < DateTime.UtcNow;
+			}
+		}
+
 		internal IPHostEntry HostEntry
 		{
 			get {
 				lock (hostE) {
-					if (host != null)
+					if (host != null && !HasDnsTimedOut)
 						return host;
 
 					string uriHost = uri.Host;
@@ -361,12 +369,14 @@ namespace System.Net
 						host = new IPHostEntry();
 						host.AddressList = new IPAddress[] { IPAddress.Parse(uriHost) };
 
+						lastDnsResolveTime = DateTime.UtcNow;
 						return host;
 					}
 
 					// Try DNS resolution on host names
 					try  {
 						host = Dns.GetHostByName (uriHost);
+						lastDnsResolveTime = DateTime.UtcNow;
 					} 
 					catch {
 						return null;
