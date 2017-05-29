@@ -455,14 +455,12 @@ namespace System.IO.Compression
 				error = "Internal error";
 				break;
 			case -3: // Z_DATA_ERROR
-				error = "Corrupted data";
-				break;
+				throw new InvalidDataException("Corrupted data " + where);
 			case -4: // Z_MEM_ERROR
 				error = "Not enough memory";
 				break;
 			case -5: // Z_BUF_ERROR
-				error = "Internal error (no progress possible)";
-				break;
+				throw new InvalidDataException("Internal error (no progress possible) " + where);
 			case -6: // Z_VERSION_ERROR
 				error = "Invalid version";
 				break;
