@@ -52,6 +52,7 @@ namespace System.Net
 	{
 		ServicePoint sPoint;
 		Stream nstream;
+		IAsyncResult currentNStreamReadAsyncResult;
 		internal Socket socket;
 		object socketLock = new object ();
 		IWebConnectionState state;
@@ -458,6 +459,9 @@ namespace System.Net
 		{
 			WebConnectionData data = Data;
 			Stream ns = nstream;
+			if (currentNStreamReadAsyncResult != result)
+				return;
+
 			if (ns == null) {
 				Close (true);
 				return;
@@ -575,7 +579,7 @@ namespace System.Net
 
 			try {
 				int size = buffer.Length - position;
-				ns.BeginRead (buffer, position, size, ReadDone, null);
+				currentNStreamReadAsyncResult = ns.BeginRead (buffer, position, size, ReadDone, null);
 			} catch (Exception e) {
 				HandleError (WebExceptionStatus.ReceiveFailure, e, "InitRead");
 			}
@@ -1133,6 +1137,7 @@ namespace System.Net
 					try {
 						nstream.Close ();
 					} catch {}
+					currentNStreamReadAsyncResult = null;
 					nstream = null;
 				}
 
