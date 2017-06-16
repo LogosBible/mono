@@ -457,6 +457,9 @@ namespace System.Net
 		{
 			WebConnectionData data = Data;
 			Stream ns = nstream;
+			if (ns != result.AsyncState)
+				return;
+
 			if (ns == null) {
 				Close (true);
 				return;
@@ -574,7 +577,7 @@ namespace System.Net
 
 			try {
 				int size = buffer.Length - position;
-				ns.BeginRead (buffer, position, size, ReadDone, null);
+				ns.BeginRead (buffer, position, size, ReadDone, ns);
 			} catch (Exception e) {
 				HandleError (WebExceptionStatus.ReceiveFailure, e, "InitRead");
 			}
