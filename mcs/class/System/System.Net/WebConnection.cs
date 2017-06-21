@@ -575,14 +575,18 @@ namespace System.Net
 		{
 			Stream ns = nstream;
 
-			try {
-				int size = buffer.Length - position;
-				ns.BeginRead (buffer, position, size, ReadDone, ns);
-			} catch (Exception e) {
-				HandleError (WebExceptionStatus.ReceiveFailure, e, "InitRead");
+			if (ns != null) {
+				try {
+					int size = buffer.Length - position;
+					ns.BeginRead (buffer, position, size, ReadDone, ns);
+				} catch (Exception e) {
+					HandleError (WebExceptionStatus.ReceiveFailure, e, "InitRead");
+				}
+			} else {
+				HandleError (WebExceptionStatus.ReceiveFailure, new ArgumentNullException("stream"), "InitRead");
 			}
 		}
-		
+
 		static int GetResponse (WebConnectionData data, ServicePoint sPoint,
 		                        byte [] buffer, int max)
 		{
