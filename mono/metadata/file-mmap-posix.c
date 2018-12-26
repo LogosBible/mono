@@ -534,7 +534,8 @@ mono_mmap_map (void *handle, gint64 offset, gint64 *size, int access, void **mma
 		return 0;
 	}
 
-	return COULD_NOT_MAP_MEMORY;
+	int error_number = errno;
+	return error_number != 0 ? error_number : COULD_NOT_MAP_MEMORY;
 }
 
 gboolean
