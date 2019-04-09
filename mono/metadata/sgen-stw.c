@@ -28,8 +28,7 @@
 #include "utils/mono-threads.h"
 #include "utils/mono-threads-debug.h"
 
-#if defined (PLATFORM_MACOSX)
-
+#if defined (GC_MACOSX_THREADS)
 #include <dlfcn.h>
 #include <mach-o/dyld.h>
 #include <mach-o/loader.h>
@@ -222,7 +221,7 @@ sgen_client_stop_world (int generation)
 	if (sgen_need_bridge_processing ())
 		sgen_bridge_reset_data ();
 
-#if defined (PLATFORM_MACOSX)
+#if defined (GC_MACOSX_THREADS)
 	if (OAExcludeMachThreadID != NULL)
 		OAExcludeMachThreadID(pthread_self(), 1);
 #endif
@@ -232,7 +231,7 @@ sgen_client_stop_world (int generation)
 void
 sgen_client_restart_world (int generation, gint64 *stw_time)
 {
-#if defined (PLATFORM_MACOSX)
+#if defined (GC_MACOSX_THREADS)
 	if (OAExcludeMachThreadID != NULL)
 		OAExcludeMachThreadID(pthread_self(), 0);
 #endif
@@ -290,7 +289,7 @@ mono_sgen_init_stw (void)
 	mono_counters_register ("World stop", MONO_COUNTER_GC | MONO_COUNTER_ULONG | MONO_COUNTER_TIME, &time_stop_world);
 	mono_counters_register ("World restart", MONO_COUNTER_GC | MONO_COUNTER_ULONG | MONO_COUNTER_TIME, &time_restart_world);
 
-#if defined (PLATFORM_MACOSX)
+#if defined (GC_MACOSX_THREADS)
 	_dyld_register_func_for_add_image (&mono_sgen_dylib_loaded);
 	_dyld_register_func_for_remove_image (&mono_sgen_dylib_unloaded);
 #endif
