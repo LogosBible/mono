@@ -28,92 +28,14 @@
 #include "utils/mono-threads.h"
 #include "utils/mono-threads-debug.h"
 
-#if defined (GC_MACOSX_THREADS)
-#include <dlfcn.h>
-#include <mach-o/dyld.h>
-#include <mach-o/loader.h>
-#include <mach-o/nlist.h>
-#include <pthread.h>
+MONO_API void mono_set_gc_start_stop_notification_function(void (*func) (uint8_t));
 
-#if defined(__x86_64__)
+static void (*GCStartStopNotificationFuction) (uint8_t) = NULL;
 
-#define MACH_HEADER_TYPE struct mach_header_64
-#define NLIST_TYPE struct nlist_64
-#define OFFSET_TYPE uint64_t
-
-#elif (defined(i386) || defined(__i386__))
-
-#define MACH_HEADER_TYPE struct mach_header
-#define NLIST_TYPE struct nlist
-#define OFFSET_TYPE uint32_t
-
-#endif
-
-const char *OAExcludeMachThreadID_function_name = "___OAExcludeMachThreadID";
-static void (*OAExcludeMachThreadID) (pthread_t, int) = NULL;
-
-static OFFSET_TYPE
-offset_for_symbol (struct symtab_command *symtab, uint8_t *data, const char *symbol_name)
+void mono_set_gc_start_stop_notification_function(void (*func) (uint8_t))
 {
-	NLIST_TYPE *nlist = (NLIST_TYPE *)(data + symtab->symoff);
-	char *strtab = (char *) (data + symtab->stroff);
-
-	for (int i = 0; i < symtab->nsyms; ++i, nlist++) {
-		const char *name = nlist->n_un.n_strx ? strtab + nlist->n_un.n_strx : NULL;
-		if (name != NULL && strcmp(symbol_name, name) == 0) {
-			OFFSET_TYPE offset = nlist->n_value;
-			return offset;
-		}
-	}
-
-	return 0;
+	GCStartStopNotificationFuction = func;
 }
-
-static void
-mono_sgen_dylib_loaded (const struct mach_header *header, intptr_t slide)
-{
-	Dl_info image_info;
-	int result = dladdr(header, &image_info);
-	if (result == 0)
-		return;
-
-	const char *image_name = image_info.dli_fname;
-	if (strstr(image_name, "liboainject.dylib") == NULL)
-		return;
-
-	struct load_command *cmd = (struct load_command*)((char *) header + sizeof(MACH_HEADER_TYPE));
-
-	for (int commandIndex = 0; commandIndex < header->ncmds; commandIndex++) {
-		if (cmd->cmd == LC_SYMTAB) {
-			OFFSET_TYPE offset = offset_for_symbol((struct symtab_command *) cmd, (uint8_t *) header, OAExcludeMachThreadID_function_name);
-			if (offset != 0) {
-				OAExcludeMachThreadID = (void (*)(pthread_t, int)) (slide + offset);
-			}
-
-			return;
-		}
-
-		cmd = (struct load_command *) ((char *) cmd + cmd->cmdsize);
-	}
-}
-
-static void
-mono_sgen_dylib_unloaded (const struct mach_header *header, intptr_t slide)
-{
-	Dl_info image_info;
-	int result = dladdr(header, &image_info);
-	if (result == 0)
-		return;
-
-	const char *image_name = image_info.dli_fname;
-	if (strstr(image_name, "liboainject.dylib") == NULL)
-		return;
-
-	OAExcludeMachThreadID = NULL;
-}
-
-#endif
-
 
 #define TV_DECLARE SGEN_TV_DECLARE
 #define TV_GETTIME SGEN_TV_GETTIME
@@ -204,6 +126,9 @@ sgen_client_stop_world (int generation)
 
 	update_current_thread_stack (&generation);
 
+	if (GCStartStopNotificationFuction != NULL)
+		GCStartStopNotificationFuction(0);
+
 	sgen_global_stop_count++;
 	SGEN_LOG (3, "stopping world n %d from %p %p", sgen_global_stop_count, mono_thread_info_current (), (gpointer) (gsize) mono_native_thread_id_get ());
 	TV_GETTIME (stop_world_time);
@@ -220,21 +145,14 @@ sgen_client_stop_world (int generation)
 	sgen_memgov_collection_start (generation);
 	if (sgen_need_bridge_processing ())
 		sgen_bridge_reset_data ();
-
-#if defined (GC_MACOSX_THREADS)
-	if (OAExcludeMachThreadID != NULL)
-		OAExcludeMachThreadID(pthread_self(), 1);
-#endif
 }
 
 /* LOCKING: assumes the GC lock is held */
 void
 sgen_client_restart_world (int generation, gint64 *stw_time)
 {
-#if defined (GC_MACOSX_THREADS)
-	if (OAExcludeMachThreadID != NULL)
-		OAExcludeMachThreadID(pthread_self(), 0);
-#endif
+	if (GCStartStopNotificationFuction != NULL)
+		GCStartStopNotificationFuction(1);
 
 	TV_DECLARE (end_sw);
 	TV_DECLARE (start_handshake);
@@ -288,11 +206,6 @@ mono_sgen_init_stw (void)
 {
 	mono_counters_register ("World stop", MONO_COUNTER_GC | MONO_COUNTER_ULONG | MONO_COUNTER_TIME, &time_stop_world);
 	mono_counters_register ("World restart", MONO_COUNTER_GC | MONO_COUNTER_ULONG | MONO_COUNTER_TIME, &time_restart_world);
-
-#if defined (GC_MACOSX_THREADS)
-	_dyld_register_func_for_add_image (&mono_sgen_dylib_loaded);
-	_dyld_register_func_for_remove_image (&mono_sgen_dylib_unloaded);
-#endif
 }
 
 /* Unified suspend code */
