@@ -1244,6 +1244,9 @@ namespace System.Runtime.InteropServices
 
 			byte[] buffer = s.GetBuffer ();
 			int len = s.Length;
+
+			if (len == 0)
+				return StringToBSTR("");
 			
 			// SecureString doesn't take endian-ness into account. 
 			// Therefore swap bytes here before we send it to c-side if little-endian.
