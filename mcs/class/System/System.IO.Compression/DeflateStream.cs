@@ -390,11 +390,12 @@ namespace System.IO.Compression
 				base_stream = Stream.Null;
 			}
 			
-			io_buffer = null;
-
-			if (z_stream != null && !z_stream.IsInvalid) {
-				z_stream.Dispose();
+			SafeDeflateStreamHandle zz = z_stream;
+			if (zz != null && !zz.IsInvalid) {
+				zz.Dispose();
 			}
+
+			io_buffer = null;
 
 			if (data != null && data.IsAllocated) {
 				data.Free ();
@@ -435,18 +436,22 @@ namespace System.IO.Compression
 			if (io_buffer == null)
 				io_buffer = new byte [BufferSize];
 
+			byte [] managed_buffer = io_buffer;
+			if (managed_buffer == null)
+				return 0;
+
 			int count = Math.Min (length, io_buffer.Length);
 			int n;
 
 			try {
-				n = base_stream.Read (io_buffer, 0, count);
+				n = base_stream.Read (managed_buffer, 0, count);
 			} catch (Exception ex) {
 				last_error = ex;
 				return -12;
 			}
 
 			if (n > 0)
-				Marshal.Copy (io_buffer, 0, buffer, n);
+				Marshal.Copy (managed_buffer, 0, buffer, n);
 
 			return n;
 		}
@@ -464,15 +469,19 @@ namespace System.IO.Compression
 
 		int UnmanagedWrite (IntPtr buffer, int length)
 		{
+			if (io_buffer == null)
+				io_buffer = new byte [BufferSize];
+
+			byte [] managed_buffer = io_buffer;
+			if (managed_buffer == null)
+				return 0;
+
 			int total = 0;
 			while (length > 0) {
-				if (io_buffer == null)
-					io_buffer = new byte [BufferSize];
-
-				int count = Math.Min (length, io_buffer.Length);
-				Marshal.Copy (buffer, io_buffer, 0, count);
+				int count = Math.Min (length, managed_buffer.Length);
+				Marshal.Copy (buffer, managed_buffer, 0, count);
 				try {
-					base_stream.Write (io_buffer, 0, count);
+					base_stream.Write (managed_buffer, 0, count);
 				} catch (Exception ex) {
 					last_error = ex;
 					return -12;
