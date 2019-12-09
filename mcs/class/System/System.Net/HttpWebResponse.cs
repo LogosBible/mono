@@ -113,16 +113,14 @@ namespace System.Net
 		[Obsolete ("Serialization is obsoleted for this type", false)]
 		protected HttpWebResponse (SerializationInfo serializationInfo, StreamingContext streamingContext)
 		{
-			SerializationInfo info = serializationInfo;
-
-			uri = (Uri) info.GetValue ("uri", typeof (Uri));
-			contentLength = info.GetInt64 ("contentLength");
-			contentType = info.GetString ("contentType");
-			method = info.GetString ("method");
-			statusDescription = info.GetString ("statusDescription");
-			cookieCollection = (CookieCollection) info.GetValue ("cookieCollection", typeof (CookieCollection));
-			version = (Version) info.GetValue ("version", typeof (Version));
-			statusCode = (HttpStatusCode) info.GetValue ("statusCode", typeof (HttpStatusCode));
+			webHeaders = (WebHeaderCollection) serializationInfo.GetValue("m_HttpResponseHeaders", typeof (WebHeaderCollection));
+			uri = (Uri) serializationInfo.GetValue("m_Uri", typeof (Uri));
+			version = (Version) serializationInfo.GetValue("m_Version", typeof (Version));
+			statusCode = (HttpStatusCode) serializationInfo.GetInt32("m_StatusCode");
+			contentLength = serializationInfo.GetInt64("m_ContentLength");
+			method = serializationInfo.GetString("m_Verb");
+			statusDescription = serializationInfo.GetString("m_StatusDescription");
+			contentType = serializationInfo.GetString("m_MediaType");
 		}
 
 		// Properties
@@ -299,16 +297,14 @@ namespace System.Net
 		protected override void GetObjectData (SerializationInfo serializationInfo,
 			StreamingContext streamingContext)
 		{
-			SerializationInfo info = serializationInfo;
-
-			info.AddValue ("uri", uri);
-			info.AddValue ("contentLength", contentLength);
-			info.AddValue ("contentType", contentType);
-			info.AddValue ("method", method);
-			info.AddValue ("statusDescription", statusDescription);
-			info.AddValue ("cookieCollection", cookieCollection);
-			info.AddValue ("version", version);
-			info.AddValue ("statusCode", statusCode);
+			serializationInfo.AddValue ("m_HttpResponseHeaders", webHeaders, typeof (WebHeaderCollection));
+			serializationInfo.AddValue ("m_Uri", uri, typeof (Uri));
+			serializationInfo.AddValue ("m_Version", version, typeof (Version));
+			serializationInfo.AddValue ("m_StatusCode", statusCode);
+			serializationInfo.AddValue ("m_ContentLength", contentLength);
+			serializationInfo.AddValue ("m_Verb", method);
+			serializationInfo.AddValue ("statusDescription", statusDescription);
+			serializationInfo.AddValue ("m_MediaType", contentType);
 		}
 
 		// Cleaning up stuff
